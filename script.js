@@ -35,17 +35,18 @@ document.addEventListener("DOMContentLoaded", function () {
   // ページ読み込み時にデータを復元
   loadFormData();
 
-  // 送信時にローカルストレージをクリア（必要なら削除）
-  form.addEventListener("submit", function () {
-    localStorage.removeItem("botFormData");
+  // フォーム送信時のローカルストレージクリアを削除
+  form.addEventListener("submit", function (event) {
+    // ここでの localStorage.removeItem("botFormData"); は削除しました
   });
 });
 
+// 以下の処理はそのまま維持
 let isStopped = false;
-let lastErrorMessage = ""; // 直前のエラーメッセージを保存して連続表示を防ぐ
+let lastErrorMessage = "";
 
 function updateStatus(message, isError = false) {
-  if (message === lastErrorMessage) return; // 同じエラーメッセージを繰り返し表示しない
+  if (message === lastErrorMessage) return;
   lastErrorMessage = message;
 
   const statusElement = document.getElementById("status");
@@ -56,8 +57,7 @@ function updateStatus(message, isError = false) {
 }
 
 function generateRandomString(length) {
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let result = "";
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
