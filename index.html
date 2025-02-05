@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discord Bot Controller - Compact Dark UI (左寄せ・展開状態保存)</title>
+  <!-- Google Fonts: Roboto Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* 基本リセット */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto Mono', monospace;
+      background: #121212;
+      color: #e0e0e0;
+      line-height: 1.4;
+      padding: 5px;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+    /* コンテナ（左寄せ・コンパクト） */
+    .container {
+      max-width: 600px;
+      margin: 5px 0;
+      padding: 5px;
+    }
+    /* アコーディオンカード */
+    .accordion {
+      background: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .accordion:hover { transform: scale(1.005); }
+    .accordion-header {
+      padding: 8px 12px;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .accordion-header h2 {
+      font-size: 0.9rem;
+      margin: 0;
+      color: #121212;
+    }
+    .accordion-header .toggle-icon {
+      font-size: 1rem;
+      transition: transform 0.3s;
+      color: #121212;
+    }
+    .accordion-content {
+      padding: 8px 12px;
+      display: none;
+      background: #1f1f1f;
+    }
+    .accordion-content.active { display: block; }
+    /* フォーム要素 */
+    label {
+      display: block;
+      margin-bottom: 2px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: #00c6ff;
+      cursor: help;
+    }
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 6px;
+      border: 1px solid #00c6ff;
+      border-radius: 2px;
+      background: #2a2a2a;
+      color: #e0e0e0;
+      font-size: 0.8rem;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #00a3d9;
+      outline: none;
+    }
+    textarea { resize: vertical; }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .checkbox-group input[type="checkbox"] {
+      margin-right: 4px;
+      width: 14px;
+      height: 14px;
+      accent-color: #00c6ff;
+    }
+    /* ボタン */
+    .btn {
+      display: inline-block;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      margin-top: 2px;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      color: #121212;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .btn:hover { 
+      background: linear-gradient(90deg, #00a3d9, #005bb5);
+      transform: scale(1.02);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.7);
+    }
+    .btn:disabled { background: #555; cursor: not-allowed; }
+    /* ステータス表示エリア */
+    .status-box {
+      background: #1f1f1f;
+      border: 1px solid #00c6ff;
+      border-radius: 2px;
+      padding: 8px;
+      margin-top: 8px;
+      min-height: 100px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 0.75rem;
+    }
+    /* ツールチップ */
+    label.tooltip:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      background: #333;
+      color: #fff;
+      padding: 4px 6px;
+      border-radius: 2px;
+      top: -28px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      opacity: 0.9;
+    }
+    /* ▼ カスタム：トークン入力欄用 ▼ */
+    .token-wrapper {
+      position: relative;
+      margin-bottom: 6px;
+    }
+    /* テキストエリア：入力用（通常は透明な文字色で下層に配置） */
+    #tokenInput {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #00c6ff;
+      border-radius: 2px;
+      background: #2a2a2a;
+      color: transparent; /* マスク中は透明 */
+      caret-color: #e0e0e0;
+      resize: vertical;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      position: relative;
+      z-index: 2;
+    }
+    /* オーバーレイ：テキストエリアと同じ位置に表示し、入力内容を●に置換して表示 */
+    #tokenOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 6px;
+      pointer-events: none;
+      white-space: pre-wrap;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      z-index: 3;
+      overflow: hidden;
+    }
+    /* 表示状態のときは、テキストエリアの文字色を通常にしてオーバーレイは非表示 */
+    .unmasked #tokenInput {
+      color: #e0e0e0;
+    }
+    .unmasked #tokenOverlay {
+      display: none;
+    }
+    /* ▼ カスタム：トークン入力欄用 ▲ */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <form id="botForm">
+      <!-- Bot／サーバー設定 -->
+      <div class="accordion" id="botServer">
+        <div class="accordion-header">
+          <h2>Bot／サーバー設定</h2>
+          <span class="toggle-icon">＋</span>
+        </div>
+        <div class="accordion-content">
+          <!-- トークン入力欄 -->
+          <label for="tokenInput" class="tooltip" data-tip="各行に1トークン。セキュリティのため初期は●で隠されています。">Botトークン</label>
+          <div class="token-wrapper" id="tokenWrapper">
+            <!-- ユーザーが入力するテキストエリア（初期状態は文字色を透明にしている） -->
+            <textarea id="tokenInput" name="token" rows="3" placeholder="TOKEN1&#10;TOKEN2"></textarea>
+            <!-- オーバーレイ：入力内容を●に置換して表示 -->
+            <div id="tokenOverlay"></div>
+          </div>
+          <button type="button" class="btn" id="toggleTokenBtn">トークンを表示</button>
+          <label for="serverId" class="tooltip" data-tip="例：123456789012345678">サーバーID</label>
+          <input type="text" id="serverId" name="serverId" placeholder="サーバーIDを入力">
+        </div>
+      </div>
+      
+      <!-- チャンネル設定 -->
+      <div class="accordion" id="channel">
+        <div class="accordion-header">
+          <h2>チャンネル設定</h2>
+          <span class="toggle-icon">＋</span>
+        </div>
+        <div class="accordion-content">
+          <div class="checkbox-group">
+            <input type="checkbox" id="sendToAllChannels" name="sendToAllChannels">
+            <label for="sendToAllChannels">全チャンネルにランダム送信（自動取得）</label>
+          </div>
+          <div id="manualChannelDiv">
+            <label for="channelIds" class="tooltip" data-tip="各行に1つのチャンネルIDを入力">チャンネルID（改行区切り）</label>
+            <textarea id="channelIds" name="channelIds" rows="2" placeholder="例：123456789012345678&#10;234567890123456789"></textarea>
+          </div>
+        </div>
+      </div>
+      
+      <!-- メッセージ設定 -->
+      <div class="accordion" id="message">
+        <div class="accordion-header">
+          <h2>メッセージ設定</h2>
+          <span class="toggle-icon">＋</span>
+        </div>
+        <div class="accordion-content">
+          <label for="messageContent" class="tooltip" data-tip="送信するメッセージ本文">メッセージ内容</label>
+          <textarea id="messageContent" name="messageContent" rows="2" placeholder="送信するメッセージ"></textarea>
+          <div class="checkbox-group">
+            <input type="checkbox" id="appendRandomString" name="appendRandomString">
+            <label for="appendRandomString">末尾にランダム文字追加</label>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="mentionRandomUsers" name="mentionRandomUsers">
+            <label for="mentionRandomUsers">ランダムにメンション</label>
+          </div>
+          <label for="mentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
+          <input type="number" id="mentionCount" name="mentionCount" min="1" max="50" value="1">
+        </div>
+      </div>
+      
+      <!-- ユーザーID取得 -->
+      <div class="accordion" id="userId">
+        <div class="accordion-header">
+          <h2>ユーザーID取得</h2>
+          <span class="toggle-icon">＋</span>
+        </div>
+        <div class="accordion-content">
+          <label for="userIds" class="tooltip" data-tip="取得したユーザーIDは各行に表示されます">取得済みユーザーID</label>
+          <textarea id="userIds" name="userIds" rows="2" placeholder="ここに取得したユーザーIDが表示されます"></textarea>
+          <button type="button" class="btn" id="fetchUserIdsButton">ユーザーID取得</button>
+        </div>
+      </div>
+      
+      <!-- 投票設定 -->
+      <div class="accordion" id="poll">
+        <div class="accordion-header">
+          <h2>投票設定</h2>
+          <span class="toggle-icon">＋</span>
+        </div>
+        <div class="accordion-content">
+          <div class="checkbox-group">
+            <input type="checkbox" id="includePoll" name="includePoll">
+            <label for="includePoll">投票を含む</label>
+          </div>
+          <div id="pollFields" style="display: none;">
+            <label for="pollQuestion" class="tooltip" data-tip="投票のタイトルを入力">投票タイトル</label>
+            <input type="text" id="pollQuestion" name="pollQuestion" placeholder="投票のタイトル">
+            <label for="pollAnswers" class="tooltip" data-tip="カンマ区切りで複数回答を入力">投票の回答</label>
+            <input type="text" id="pollAnswers" name="pollAnswers" placeholder="例：回答1,回答2,回答3">
+            <label for="pollDuration" class="tooltip" data-tip="投票の開催期間（単位：時間）">開催期間</label>
+            <select id="pollDuration" name="pollDuration">
+              <option value="1">1時間</option>
+              <option value="4">4時間</option>
+              <option value="8">8時間</option>
+              <option value="24">24時間</option>
+              <option value="72">3日間</option>
+              <option value="168">1週間</option>
+              <option value="336">2週間</option>
+            </select>
+            <div class="checkbox-group">
+              <input type="checkbox" id="expirePoll" name="expirePoll">
+              <label for="expirePoll">投票を即時終了</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- その他設定 -->
+      <div class="accordion" id="other">
+        <div class="accordion-header">
+          <h2>その他設定</h2>
+          <span class="toggle-icon">＋</span>
+        </div>
+        <div class="accordion-content">
+          <label for="delay" class="tooltip" data-tip="送信間隔（秒）。例：0.1">送信間隔</label>
+          <input type="number" id="delay" name="delay" step="0.1" value="0.1" placeholder="例：0.1">
+        </div>
+      </div>
+      
+      <!-- 実行／停止 -->
+      <div class="accordion" id="execution">
+        <div class="accordion-header">
+          <h2>実行／停止</h2>
+          <span class="toggle-icon">＋</span>
+        </div>
+        <div class="accordion-content">
+          <button type="submit" class="btn" id="executeBtn">実行</button>
+          <button type="button" class="btn" id="stopButton" disabled>停止</button>
+        </div>
+      </div>
+    </form>
+    <!-- ステータス表示 -->
+    <div class="status-box" id="status">処理待機中...</div>
+  </div>
+  
+  <!-- axios CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    (function(){
+      "use strict";
+      
+      // アコーディオンの状態をlocalStorageから読み込み、開閉状態を管理
+      const savedAccordionStates = JSON.parse(localStorage.getItem("accordionStates") || "{}");
+      document.querySelectorAll('.accordion').forEach(accordion => {
+        const header = accordion.querySelector('.accordion-header');
+        const content = accordion.querySelector('.accordion-content');
+        const icon = header.querySelector('.toggle-icon');
+        const id = accordion.id;
+        if (savedAccordionStates[id]) {
+          content.classList.add('active');
+          icon.textContent = '−';
+        } else {
+          content.classList.remove('active');
+          icon.textContent = '＋';
+        }
+        header.addEventListener('click', function() {
+          if (content.classList.contains('active')) {
+            content.classList.remove('active');
+            icon.textContent = '＋';
+            savedAccordionStates[id] = false;
+          } else {
+            content.classList.add('active');
+            icon.textContent = '−';
+            savedAccordionStates[id] = true;
+          }
+          localStorage.setItem("accordionStates", JSON.stringify(savedAccordionStates));
+        });
+      });
+      
+      // 既存のフォームの自動保存処理
+      let processRunning = false;
+      let isStopped = false;
+      let lastErrorMessage = "";
+      const form = document.getElementById("botForm");
+      function saveFormData() {
+        const formData = {};
+        new FormData(form).forEach((value, key) => { formData[key] = value; });
+        localStorage.setItem("botFormData", JSON.stringify(formData));
+      }
+      function loadFormData() {
+        const saved = localStorage.getItem("botFormData");
+        if (saved) {
+          const data = JSON.parse(saved);
+          Object.keys(data).forEach(key => {
+            if (form.elements[key]) {
+              if (form.elements[key].type === "checkbox") {
+                form.elements[key].checked = data[key] === "on";
+              } else {
+                form.elements[key].value = data[key];
+              }
+            }
+          });
+        }
+      }
+      form.addEventListener("input", saveFormData);
+      loadFormData();
+      
+      const sendAllCheckbox = document.getElementById("sendToAllChannels");
+      const manualChannelDiv = document.getElementById("manualChannelDiv");
+      function updateChannelInput() {
+        manualChannelDiv.style.display = sendAllCheckbox.checked ? "none" : "block";
+      }
+      sendAllCheckbox.addEventListener("change", updateChannelInput);
+      updateChannelInput();
+      
+      const includePollCheckbox = document.getElementById("includePoll");
+      const pollFields = document.getElementById("pollFields");
+      pollFields.style.display = includePollCheckbox.checked ? "block" : "none";
+      includePollCheckbox.addEventListener("change", function() {
+        pollFields.style.display = this.checked ? "block" : "none";
+      });
+      
+      document.getElementById("stopButton").disabled = true;
+      
+      // ▼ カスタム：トークン入力の実装 ▼
+      // トークン入力用テキストエリアとオーバーレイ
+      const tokenWrapper = document.getElementById("tokenWrapper");
+      const tokenInput = document.getElementById("tokenInput");
+      const tokenOverlay = document.getElementById("tokenOverlay");
+      const toggleTokenBtn = document.getElementById("toggleTokenBtn");
+      let isTokenShowing = false; // false: マスク表示（●）、true: 実際の文字表示
+      
+      // 入力内容やスクロール位置に応じてオーバーレイを更新
+      function updateTokenOverlay() {
+        const text = tokenInput.value;
+        if (!isTokenShowing) {
+          // 各文字を●に置換（改行はそのまま）
+          let masked = "";
+          for (let i = 0; i < text.length; i++) {
+            masked += (text[i] === "\n" ? "\n" : "●");
+          }
+          tokenOverlay.textContent = masked;
+        }
+      }
+      // テキストエリア入力時に更新
+      tokenInput.addEventListener("input", updateTokenOverlay);
+      // スクロール位置も同期
+      tokenInput.addEventListener("scroll", function() {
+        tokenOverlay.scrollTop = tokenInput.scrollTop;
+        tokenOverlay.scrollLeft = tokenInput.scrollLeft;
+      });
+      
+      // 初回更新
+      updateTokenOverlay();
+      
+      // トークン表示／隠すの切替処理
+      toggleTokenBtn.addEventListener("click", function() {
+        isTokenShowing = !isTokenShowing;
+        if (isTokenShowing) {
+          // 表示状態：オーバーレイを非表示し、テキストエリアの文字色を通常に
+          tokenWrapper.classList.add("unmasked");
+          toggleTokenBtn.textContent = "トークンを隠す";
+        } else {
+          // マスク状態：オーバーレイを表示し、テキストエリアの文字色は透明のまま
+          tokenWrapper.classList.remove("unmasked");
+          toggleTokenBtn.textContent = "トークンを表示";
+          updateTokenOverlay();
+        }
+      });
+      // ▼ カスタム：トークン入力の実装 ▲
+      
+      function updateStatus(message, isError = false) {
+        if (message === lastErrorMessage) return;
+        lastErrorMessage = message;
+        const statusEl = document.getElementById("status");
+        const div = document.createElement("div");
+        div.innerText = message;
+        div.style.color = isError ? "#ff6b6b" : "#e0e0e0";
+        statusEl.appendChild(div);
+      }
+      
+      function generateRandomString(length) {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let result = "";
+        for (let i = 0; i < length; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      }
+      
+      async function retryRequest(requestFunc, delay = 1000) {
+        while (true) {
+          try {
+            return await requestFunc();
+          } catch (error) {
+            if (error.response && error.response.status === 429) {
+              const retryAfter = error.response.data.retry_after || delay / 1000;
+              updateStatus(`レート制限: ${retryAfter}秒後に再試行`, true);
+              await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            } else if (error.message === "Network Error") {
+              updateStatus("ネットワークエラー。再試行します。", true);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+              updateStatus(`エラー: ${error.message}`, true);
+              throw error;
+            }
+          }
+        }
+      }
+      
+      async function sendMessageToChannels(message, channelIds, token) {
+        const headers = { Authorization: token, "Content-Type": "application/json" };
+        for (const channelId of channelIds) {
+          try {
+            const data = { content: message };
+            await retryRequest(() => axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, data, { headers }));
+          } catch (error) { }
+        }
+      }
+      
+      async function sendPollData(pollData, channelIds, token) {
+        const headers = { Authorization: token, "Content-Type": "application/json" };
+        for (const channelId of channelIds) {
+          try {
+            const response = await retryRequest(() => axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, { headers }));
+            if (response && response.data) return response;
+            else throw new Error("無効なレスポンス");
+          } catch (error) { }
+        }
+      }
+      
+      document.getElementById("fetchUserIdsButton").addEventListener("click", async function () {
+        const serverId = document.getElementById("serverId").value.trim();
+        // トークンはテキストエリアの値から（1行目のみを利用）
+        const tokenVal = tokenInput.value.split("\n")[0].trim();
+        if (!serverId) { updateStatus("サーバーIDを入力してください。", true); return; }
+        if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
+        
+        let channelIds = [];
+        try {
+          const resp = await retryRequest(() =>
+            axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
+              headers: { Authorization: tokenVal }
+            })
+          );
+          const allChannels = resp.data.filter(ch => [0, 2, 5].includes(ch.type));
+          if (allChannels.length === 0) { 
+            updateStatus("送信可能なチャンネルが見つかりません。", true); 
+            return; 
+          }
+          channelIds = allChannels.map(ch => ch.id);
+        } catch (error) {
+          updateStatus(`チャンネル取得エラー: ${error.message}`, true);
+          return;
+        }
+        
+        const userIdSet = new Set();
+        for (const channelId of channelIds) {
+          try {
+            const response = await retryRequest(() =>
+              axios.get(`https://discord.com/api/v10/channels/${channelId}/messages?limit=100`, { headers: { Authorization: tokenVal } })
+            );
+            const messages = response.data;
+            messages.forEach(msg => { if (msg.author && msg.author.id) userIdSet.add(msg.author.id); });
+          } catch (error) { }
+        }
+        const userIds = Array.from(userIdSet);
+        document.getElementById("userIds").value = userIds.join("\n");
+        updateStatus(`ユーザーID ${userIds.length} 件取得しました。`);
+      });
+      
+      document.getElementById("botForm").addEventListener("submit", async function (event) {
+        event.preventDefault();
+        if (processRunning) return;
+        processRunning = true;
+        isStopped = false;
+    
+        const execBtn = document.getElementById("executeBtn");
+        const stopBtn = document.getElementById("stopButton");
+        execBtn.disabled = true;
+        stopBtn.disabled = false;
+    
+        // トークンはテキストエリアの値から取得（複数行の場合、各行が１トークン）
+        const tokens = tokenInput.value.split("\n").map(t => t.trim()).filter(t => t);
+        const serverId = document.getElementById("serverId").value.trim();
+        const baseMessage = document.getElementById("messageContent").value;
+        const delay = (parseFloat(document.getElementById("delay").value) || 0.1) * 1000;
+        const appendRandomString = document.getElementById("appendRandomString").checked;
+        const mentionRandomUsers = document.getElementById("mentionRandomUsers").checked;
+        let mentionCount = parseInt(document.getElementById("mentionCount").value, 10) || 1;
+        mentionCount = Math.min(Math.max(mentionCount, 1), 50);
+        
+        const includePoll = document.getElementById("includePoll").checked;
+        const pollQuestion = document.getElementById("pollQuestion").value;
+        const pollAnswers = document.getElementById("pollAnswers").value.split(",").map(a => a.trim()).filter(a => a);
+        const pollDuration = document.getElementById("pollDuration").value;
+        const expirePoll = document.getElementById("expirePoll").checked;
+    
+        const sendToAllChannels = document.getElementById("sendToAllChannels").checked;
+        const manualChannelsText = document.getElementById("channelIds").value.trim();
+        const userIdsText = document.getElementById("userIds").value.trim();
+    
+        let channelsList = [];
+        if (sendToAllChannels) {
+          try {
+            const resp = await retryRequest(() =>
+              axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
+                headers: { Authorization: tokens[0] }
+              })
+            );
+            const allChannels = resp.data.filter(ch => [0, 2, 5].includes(ch.type)).map(ch => ch.id);
+            if (allChannels.length === 0) { updateStatus("送信可能なチャンネルが見つかりません。", true); processRunning = false; return; }
+            channelsList = allChannels;
+          } catch (error) {
+            updateStatus(`チャンネル取得エラー: ${error.message}`, true);
+            processRunning = false;
+            return;
+          }
+        } else {
+          const manualIds = manualChannelsText.split("\n").map(id => id.trim()).filter(id => id);
+          if (manualIds.length === 0) { updateStatus("チャンネルIDが入力されていません。", true); processRunning = false; return; }
+          channelsList = manualIds;
+        }
+    
+        document.getElementById("status").innerText = "処理中...";
+        let tokenIndex = 0;
+        while (!isStopped) {
+          let finalMessage = baseMessage;
+          if (mentionRandomUsers) {
+            if (userIdsText) {
+              const userIds = userIdsText.split("\n").map(id => id.trim()).filter(id => id);
+              if (userIds.length === 0) { updateStatus("ユーザーID欄が空です。", true); }
+              else {
+                const effectiveCount = Math.min(mentionCount, userIds.length);
+                const shuffled = userIds.slice().sort(() => 0.5 - Math.random());
+                const selected = shuffled.slice(0, effectiveCount);
+                const mentions = selected.map(id => `<@${id}>`);
+                const lines = [];
+                for (let i = 0; i < mentions.length; i += 3) {
+                  lines.push(mentions.slice(i, i + 3).join(" "));
+                }
+                finalMessage += "\n" + lines.join("\n");
+              }
+            } else {
+              try {
+                const resp = await retryRequest(() =>
+                  axios.get(`https://discord.com/api/v9/guilds/${serverId}/members`, {
+                    headers: { Authorization: tokens[tokenIndex] }
+                  })
+                );
+                const members = resp.data;
+                if (members.length < 3) { updateStatus("ギルドメンバーが不足しています。", true); }
+                else {
+                  const shuffled = members.slice().sort(() => 0.5 - Math.random());
+                  const selected = shuffled.slice(0, 3).map(m => `<@${m.user.id}>`);
+                  finalMessage += "\n" + selected.join(" ");
+                }
+              } catch (error) {
+                updateStatus(`ギルドメンバー取得エラー: ${error.message}`, true);
+              }
+            }
+          }
+          if (appendRandomString) { finalMessage += " " + generateRandomString(8); }
+    
+          let pollData = null;
+          if (includePoll) {
+            if (pollQuestion && pollAnswers.length > 0) {
+              pollData = {
+                content: finalMessage,
+                poll: {
+                  question: { text: pollQuestion },
+                  answers: pollAnswers.map(answer => ({ poll_media: { text: answer } })),
+                  duration: pollDuration
+                },
+                flags: 0
+              };
+            }
+          }
+    
+          let targetChannels = [];
+          const randomIndex = Math.floor(Math.random() * channelsList.length);
+          targetChannels.push(channelsList[randomIndex]);
+    
+          try {
+            if (pollData) {
+              const pollResp = await retryRequest(() =>
+                sendPollData(pollData, targetChannels, tokens[tokenIndex])
+              );
+              updateStatus("メッセージ＋投票を送信しました。");
+              if (expirePoll && pollResp && pollResp.data) {
+                const pollId = pollResp.data.id;
+                const channelId = pollResp.data.channel_id;
+                await retryRequest(() =>
+                  axios.post(`https://discord.com/api/v9/channels/${channelId}/polls/${pollId}/expire`, {}, { headers: { Authorization: tokens[tokenIndex] } })
+                );
+                updateStatus("投票を即時終了しました。");
+              }
+            } else {
+              await retryRequest(() =>
+                sendMessageToChannels(finalMessage, targetChannels, tokens[tokenIndex])
+              );
+              updateStatus("メッセージを送信しました。");
+            }
+          } catch (error) {
+            updateStatus(`送信エラー: ${error.message}`, true);
+          }
+          tokenIndex = (tokenIndex + 1) % tokens.length;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        updateStatus("メッセージ送信が停止しました。");
+        processRunning = false;
+        execBtn.disabled = false;
+        stopBtn.disabled = true;
+      });
+      
+      document.getElementById("stopButton").addEventListener("click", function () {
+        isStopped = true;
+        updateStatus("処理を停止しました。");
+        processRunning = false;
+        document.getElementById("executeBtn").disabled = false;
+        this.disabled = true;
+      });
+    })();
+  </script>
+</body>
+</html>
