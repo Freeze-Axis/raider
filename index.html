@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -152,7 +152,6 @@
       position: relative;
       margin-bottom: 6px;
     }
-    /* テキストエリア：入力用（通常は透明な文字色で下層に配置） */
     #tokenInput {
       width: 100%;
       padding: 6px;
@@ -168,7 +167,6 @@
       position: relative;
       z-index: 2;
     }
-    /* オーバーレイ：テキストエリアと同じ位置に表示し、入力内容を●に置換して表示 */
     #tokenOverlay {
       position: absolute;
       top: 0;
@@ -185,12 +183,30 @@
       z-index: 3;
       overflow: hidden;
     }
-    /* 表示状態のときは、テキストエリアの文字色を通常にしてオーバーレイは非表示 */
     .unmasked #tokenInput {
       color: #e0e0e0;
     }
     .unmasked #tokenOverlay {
       display: none;
+    }
+    /* ▼ メッセージ設定用スタイル ▼ */
+    .message-settings-container {
+      padding: 10px;
+      border: 1px solid #00c6ff;
+      border-radius: 4px;
+      background-color: #181818;
+      margin-top: 8px;
+    }
+    .message-settings-container h3 {
+      margin-bottom: 8px;
+      color: #00c6ff;
+    }
+    .delay-settings {
+      border: 1px solid #00c6ff;
+      padding: 8px;
+      margin-top: 8px;
+      border-radius: 4px;
+      background-color: #1a1a1a;
     }
     /* ▼ カスタム：トークン入力欄用 ▲ */
   </style>
@@ -208,9 +224,7 @@
           <!-- トークン入力欄 -->
           <label for="tokenInput" class="tooltip" data-tip="各行に1トークン。セキュリティのため初期は●で隠されています。">Botトークン</label>
           <div class="token-wrapper" id="tokenWrapper">
-            <!-- ユーザーが入力するテキストエリア（初期状態は文字色を透明にしている） -->
             <textarea id="tokenInput" name="token" rows="3" placeholder="TOKEN1&#10;TOKEN2"></textarea>
-            <!-- オーバーレイ：入力内容を●に置換して表示 -->
             <div id="tokenOverlay"></div>
           </div>
           <button type="button" class="btn" id="toggleTokenBtn">トークンを表示</button>
@@ -219,10 +233,10 @@
         </div>
       </div>
       
-      <!-- チャンネル設定 -->
+      <!-- ID設定（旧：チャンネル設定＋ユーザーID取得） -->
       <div class="accordion" id="channel">
         <div class="accordion-header">
-          <h2>チャンネル設定</h2>
+          <h2>ID設定</h2>
           <span class="toggle-icon">＋</span>
         </div>
         <div class="accordion-content">
@@ -234,6 +248,12 @@
             <label for="channelIds" class="tooltip" data-tip="各行に1つのチャンネルIDを入力">チャンネルID（改行区切り）</label>
             <textarea id="channelIds" name="channelIds" rows="2" placeholder="例：123456789012345678&#10;234567890123456789"></textarea>
           </div>
+          <fieldset style="border:1px solid #00c6ff; padding: 8px; margin-top: 8px;">
+            <legend style="padding: 0 4px; color: #00c6ff; font-size: 0.8rem;">ユーザーID取得</legend>
+            <label for="userIds" class="tooltip" data-tip="取得したユーザーIDは各行に表示されます">取得済みユーザーID</label>
+            <textarea id="userIds" name="userIds" rows="2" placeholder="ここに取得したユーザーIDが表示されます"></textarea>
+            <button type="button" class="btn" id="fetchUserIdsButton">ユーザーID取得</button>
+          </fieldset>
         </div>
       </div>
       
@@ -244,77 +264,81 @@
           <span class="toggle-icon">＋</span>
         </div>
         <div class="accordion-content">
-          <label for="messageContent" class="tooltip" data-tip="送信するメッセージ本文">メッセージ内容</label>
-          <textarea id="messageContent" name="messageContent" rows="2" placeholder="送信するメッセージ"></textarea>
-          <div class="checkbox-group">
-            <input type="checkbox" id="appendRandomString" name="appendRandomString">
-            <label for="appendRandomString">末尾にランダム文字追加</label>
-          </div>
-          <div class="checkbox-group">
-            <input type="checkbox" id="mentionRandomUsers" name="mentionRandomUsers">
-            <label for="mentionRandomUsers">ランダムにメンション</label>
-          </div>
-          <label for="mentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
-          <input type="number" id="mentionCount" name="mentionCount" min="1" max="50" value="1">
-        </div>
-      </div>
-      
-      <!-- ユーザーID取得 -->
-      <div class="accordion" id="userId">
-        <div class="accordion-header">
-          <h2>ユーザーID取得</h2>
-          <span class="toggle-icon">＋</span>
-        </div>
-        <div class="accordion-content">
-          <label for="userIds" class="tooltip" data-tip="取得したユーザーIDは各行に表示されます">取得済みユーザーID</label>
-          <textarea id="userIds" name="userIds" rows="2" placeholder="ここに取得したユーザーIDが表示されます"></textarea>
-          <button type="button" class="btn" id="fetchUserIdsButton">ユーザーID取得</button>
-        </div>
-      </div>
-      
-      <!-- 投票設定 -->
-      <div class="accordion" id="poll">
-        <div class="accordion-header">
-          <h2>投票設定</h2>
-          <span class="toggle-icon">＋</span>
-        </div>
-        <div class="accordion-content">
-          <div class="checkbox-group">
-            <input type="checkbox" id="includePoll" name="includePoll">
-            <label for="includePoll">投票を含む</label>
-          </div>
-          <div id="pollFields" style="display: none;">
-            <label for="pollQuestion" class="tooltip" data-tip="投票のタイトルを入力">投票タイトル</label>
-            <input type="text" id="pollQuestion" name="pollQuestion" placeholder="投票のタイトル">
-            <label for="pollAnswers" class="tooltip" data-tip="カンマ区切りで複数回答を入力">投票の回答</label>
-            <input type="text" id="pollAnswers" name="pollAnswers" placeholder="例：回答1,回答2,回答3">
-            <label for="pollDuration" class="tooltip" data-tip="投票の開催期間（単位：時間）">開催期間</label>
-            <select id="pollDuration" name="pollDuration">
-              <option value="1">1時間</option>
-              <option value="4">4時間</option>
-              <option value="8">8時間</option>
-              <option value="24">24時間</option>
-              <option value="72">3日間</option>
-              <option value="168">1週間</option>
-              <option value="336">2週間</option>
-            </select>
+          <div class="message-settings-container">
+            <h3>メッセージ設定</h3>
+            <label for="messageContent" class="tooltip" data-tip="送信するメッセージ本文">メッセージ内容</label>
+            <textarea id="messageContent" name="messageContent" rows="2" placeholder="送信するメッセージ"></textarea>
             <div class="checkbox-group">
-              <input type="checkbox" id="expirePoll" name="expirePoll">
-              <label for="expirePoll">投票を即時終了</label>
+              <input type="checkbox" id="appendRandomString" name="appendRandomString">
+              <label for="appendRandomString">末尾にランダム文字追加</label>
+            </div>
+            <div class="checkbox-group">
+              <input type="checkbox" id="mentionRandomUsers" name="mentionRandomUsers">
+              <label for="mentionRandomUsers">ランダムにメンション</label>
+            </div>
+            <label for="mentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
+            <input type="number" id="mentionCount" name="mentionCount" min="1" max="50" value="1">
+            
+            <!-- 【メッセージ送信：投票設定】 -->
+            <fieldset style="border:1px solid #00c6ff; padding: 8px; margin-top: 8px; border-radius:4px;">
+              <legend style="padding: 0 4px; color: #00c6ff; font-size: 0.8rem;">【メッセージ送信：投票設定】</legend>
+              <div class="checkbox-group">
+                <input type="checkbox" id="includePoll" name="includePoll">
+                <label for="includePoll">投票を含む</label>
+              </div>
+              <div id="pollFields" style="display: none;">
+                <label for="pollQuestion" class="tooltip" data-tip="投票のタイトルを入力">投票タイトル</label>
+                <input type="text" id="pollQuestion" name="pollQuestion" placeholder="投票のタイトル">
+                <label for="pollAnswers" class="tooltip" data-tip="カンマ区切りで複数回答を入力">投票の回答</label>
+                <input type="text" id="pollAnswers" name="pollAnswers" placeholder="例：回答1,回答2,回答3">
+                <label for="pollDuration" class="tooltip" data-tip="投票の開催期間（単位：時間）">開催期間</label>
+                <select id="pollDuration" name="pollDuration">
+                  <option value="1">1時間</option>
+                  <option value="4">4時間</option>
+                  <option value="8">8時間</option>
+                  <option value="24">24時間</option>
+                  <option value="72">3日間</option>
+                  <option value="168">1週間</option>
+                  <option value="336">2週間</option>
+                </select>
+                <div class="checkbox-group">
+                  <input type="checkbox" id="expirePoll" name="expirePoll">
+                  <label for="expirePoll">投票を即時終了</label>
+                </div>
+              </div>
+            </fieldset>
+            <!-- 遅延設定（メッセージ・投票共通） -->
+            <div class="delay-settings">
+              <div class="checkbox-group">
+                <!-- チェックボックスは初期状態をオフ（未チェック）に -->
+                <input type="checkbox" id="enableDelay" name="enableDelay">
+                <label for="enableDelay">遅延を有効にする</label>
+              </div>
+              <label for="delay" class="tooltip" data-tip="送信遅延（ミリ秒）。例：1000 は 1 秒">送信遅延（ミリ秒）</label>
+              <!-- デフォルト値を 0 に（チェックが入っていなければ遅延なし） -->
+              <input type="number" id="delay" name="delay" step="1" value="0" placeholder="例：1000">
             </div>
           </div>
         </div>
       </div>
       
-      <!-- その他設定 -->
-      <div class="accordion" id="other">
+      <!-- スレッド作成 -->
+      <div class="accordion" id="threadCreation">
         <div class="accordion-header">
-          <h2>その他設定</h2>
+          <h2>スレッド作成</h2>
           <span class="toggle-icon">＋</span>
         </div>
         <div class="accordion-content">
-          <label for="delay" class="tooltip" data-tip="送信間隔（秒）。例：0.1">送信間隔</label>
-          <input type="number" id="delay" name="delay" step="0.1" value="0.1" placeholder="例：0.1">
+          <label for="threadTitle" class="tooltip" data-tip="作成するスレッドのタイトル">スレッドタイトル</label>
+          <input type="text" id="threadTitle" name="threadTitle" placeholder="スレッドタイトルを入力">
+          <label for="threadMessage" class="tooltip" data-tip="スレッド内に送信するメッセージ">スレッドのメッセージ</label>
+          <textarea id="threadMessage" name="threadMessage" rows="2" placeholder="スレッド内のメッセージ"></textarea>
+          <label for="threadCount" class="tooltip" data-tip="作成回数を指定">作成回数</label>
+          <input type="number" id="threadCount" name="threadCount" value="1">
+          <label for="threadDelay" class="tooltip" data-tip="各スレッド作成の間隔（ミリ秒）。例：1000 は 1 秒">遅延（ミリ秒）</label>
+          <input type="number" id="threadDelay" name="threadDelay" value="1000">
+          <p style="font-size:0.8rem; color:#00c6ff;">※スレッドのtypeは自動判別されます</p>
+          <button type="button" class="btn" id="startThreadBtn">スレッド送信開始</button>
         </div>
       </div>
       
@@ -414,18 +438,15 @@
       document.getElementById("stopButton").disabled = true;
       
       // ▼ カスタム：トークン入力の実装 ▼
-      // トークン入力用テキストエリアとオーバーレイ
       const tokenWrapper = document.getElementById("tokenWrapper");
       const tokenInput = document.getElementById("tokenInput");
       const tokenOverlay = document.getElementById("tokenOverlay");
       const toggleTokenBtn = document.getElementById("toggleTokenBtn");
-      let isTokenShowing = false; // false: マスク表示（●）、true: 実際の文字表示
+      let isTokenShowing = false; // false: マスク表示、true: 表示
       
-      // 入力内容やスクロール位置に応じてオーバーレイを更新
       function updateTokenOverlay() {
         const text = tokenInput.value;
         if (!isTokenShowing) {
-          // 各文字を●に置換（改行はそのまま）
           let masked = "";
           for (let i = 0; i < text.length; i++) {
             masked += (text[i] === "\n" ? "\n" : "●");
@@ -433,32 +454,32 @@
           tokenOverlay.textContent = masked;
         }
       }
-      // テキストエリア入力時に更新
       tokenInput.addEventListener("input", updateTokenOverlay);
-      // スクロール位置も同期
       tokenInput.addEventListener("scroll", function() {
         tokenOverlay.scrollTop = tokenInput.scrollTop;
         tokenOverlay.scrollLeft = tokenInput.scrollLeft;
       });
-      
-      // 初回更新
       updateTokenOverlay();
       
-      // トークン表示／隠すの切替処理
       toggleTokenBtn.addEventListener("click", function() {
         isTokenShowing = !isTokenShowing;
         if (isTokenShowing) {
-          // 表示状態：オーバーレイを非表示し、テキストエリアの文字色を通常に
           tokenWrapper.classList.add("unmasked");
           toggleTokenBtn.textContent = "トークンを隠す";
         } else {
-          // マスク状態：オーバーレイを表示し、テキストエリアの文字色は透明のまま
           tokenWrapper.classList.remove("unmasked");
           toggleTokenBtn.textContent = "トークンを表示";
           updateTokenOverlay();
         }
       });
       // ▼ カスタム：トークン入力の実装 ▲
+      
+      // 遅延有効/無効の制御（遅延入力欄はチェック未選択なら無効）
+      const enableDelayCheckbox = document.getElementById("enableDelay");
+      const delayInput = document.getElementById("delay");
+      enableDelayCheckbox.addEventListener("change", function() {
+        delayInput.disabled = !this.checked;
+      });
       
       function updateStatus(message, isError = false) {
         if (message === lastErrorMessage) return;
@@ -522,7 +543,6 @@
       
       document.getElementById("fetchUserIdsButton").addEventListener("click", async function () {
         const serverId = document.getElementById("serverId").value.trim();
-        // トークンはテキストエリアの値から（1行目のみを利用）
         const tokenVal = tokenInput.value.split("\n")[0].trim();
         if (!serverId) { updateStatus("サーバーIDを入力してください。", true); return; }
         if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
@@ -575,7 +595,9 @@
         const tokens = tokenInput.value.split("\n").map(t => t.trim()).filter(t => t);
         const serverId = document.getElementById("serverId").value.trim();
         const baseMessage = document.getElementById("messageContent").value;
-        const delay = (parseFloat(document.getElementById("delay").value) || 0.1) * 1000;
+        // 遅延設定：チェックがオンの場合は入力値、オフの場合は 0（完全に遅延なし）
+        const delayEnabled = document.getElementById("enableDelay").checked;
+        const delay = delayEnabled ? (parseInt(document.getElementById("delay").value, 10) || 0) : 0;
         const appendRandomString = document.getElementById("appendRandomString").checked;
         const mentionRandomUsers = document.getElementById("mentionRandomUsers").checked;
         let mentionCount = parseInt(document.getElementById("mentionCount").value, 10) || 1;
@@ -711,6 +733,103 @@
         document.getElementById("executeBtn").disabled = false;
         this.disabled = true;
       });
+      
+      // ▼ スレッド作成処理の実装 ▼
+      document.getElementById("startThreadBtn").addEventListener("click", async function () {
+        const threadTitle = document.getElementById("threadTitle").value.trim();
+        const threadMessage = document.getElementById("threadMessage").value;
+        const threadCount = Number(document.getElementById("threadCount").value) || 1;
+        const threadDelay = Number(document.getElementById("threadDelay").value) || 1000;  // ミリ秒として取得
+        const tokenVal = tokenInput.value.split("\n")[0].trim();
+        if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
+        
+        // 対象チャンネルIDの決定：手動入力があれば先頭1件、なければ全チャンネル送信から取得
+        let targetChannelId = "";
+        const sendToAllChannels = document.getElementById("sendToAllChannels").checked;
+        const manualChannelsText = document.getElementById("channelIds").value.trim();
+        const serverId = document.getElementById("serverId").value.trim();
+        
+        if (manualChannelsText) {
+          targetChannelId = manualChannelsText.split("\n")[0].trim();
+        } else if (sendToAllChannels && serverId) {
+          try {
+            const resp = await retryRequest(() =>
+              axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
+                headers: { Authorization: tokenVal }
+              })
+            );
+            const allChannels = resp.data.filter(ch => [0, 2, 5].includes(ch.type));
+            if (allChannels.length === 0) { updateStatus("スレッド作成可能なチャンネルが見つかりません。", true); return; }
+            targetChannelId = allChannels[0].id;
+          } catch (error) {
+            updateStatus(`チャンネル取得エラー: ${error.message}`, true);
+            return;
+          }
+        } else {
+          updateStatus("チャンネルIDまたはサーバーIDが必要です。", true);
+          return;
+        }
+        
+        // 対象チャンネルの詳細情報を取得し、チャンネルの種類に応じてスレッド type を自動判別
+        // (Discord のアナウンスチャンネルは type=5 として返されるため、該当の場合はスレッド type を 10、通常は 11 とする)
+        let actualThreadType = 11; // デフォルトは通常スレッド
+        try {
+          const channelResp = await retryRequest(() =>
+            axios.get(`https://discord.com/api/v9/channels/${targetChannelId}`, {
+              headers: { Authorization: tokenVal }
+            })
+          );
+          const chType = channelResp.data.type;
+          if (chType === 5) {  // アナウンスチャンネルの場合
+             actualThreadType = 10;
+          } else {
+             actualThreadType = 11;
+          }
+          updateStatus(`対象チャンネルタイプ ${chType} により、スレッドtype を ${actualThreadType} に設定しました。`);
+        } catch (error) {
+          updateStatus(`チャンネル情報取得エラー: ${error.message}`, true);
+          return;
+        }
+        
+        updateStatus("スレッド作成処理開始...");
+        
+        for (let i = 0; i < threadCount; i++) {
+          try {
+            const payload = {
+              name: threadTitle,
+              type: actualThreadType,
+              auto_archive_duration: 4320,
+              location: "Thread Browser Toolbar"
+            };
+            // スレッド作成リクエスト
+            const threadResp = await retryRequest(() =>
+              axios.post(`https://discord.com/api/v9/channels/${targetChannelId}/threads`, payload, {
+                headers: { Authorization: tokenVal, "Content-Type": "application/json" }
+              })
+            );
+            updateStatus(`スレッド "${threadTitle}" 作成完了 (${i+1}/${threadCount})`);
+            
+            // スレッド内にメッセージ送信（入力があれば） 
+            if (threadMessage.trim() && threadResp.data && threadResp.data.id) {
+              const newThreadId = threadResp.data.id;
+              const msgPayload = { content: threadMessage };
+              await retryRequest(() =>
+                axios.post(`https://discord.com/api/v10/channels/${newThreadId}/messages`, msgPayload, {
+                  headers: { Authorization: tokenVal, "Content-Type": "application/json" }
+                })
+              );
+              updateStatus(`スレッド内メッセージ送信完了 (${i+1}/${threadCount})`);
+            }
+          } catch (error) {
+            updateStatus(`スレッド作成エラー: ${error.message}`, true);
+          }
+          await new Promise(resolve => setTimeout(resolve, threadDelay));
+        }
+        
+        updateStatus("スレッド作成処理が終了しました。");
+      });
+      // ▼ スレッド作成処理の実装 ▲
+      
     })();
   </script>
 </body>
