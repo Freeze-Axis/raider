@@ -325,12 +325,11 @@
             <!-- 遅延設定（メッセージ・投票共通） -->
             <div class="delay-settings">
               <div class="checkbox-group">
-                <!-- チェックボックスは初期状態をオフ（未チェック）に -->
+                <!-- チェックボックスは初期状態を未選択（遅延なし）に -->
                 <input type="checkbox" id="enableDelay" name="enableDelay">
                 <label for="enableDelay">遅延を有効にする</label>
               </div>
               <label for="delay" class="tooltip" data-tip="送信遅延（ミリ秒）。例：1000 は 1 秒">送信遅延（ミリ秒）</label>
-              <!-- デフォルト値を 0 に（チェックが入っていなければ遅延なし） -->
               <input type="number" id="delay" name="delay" step="1" value="0" placeholder="例：1000">
             </div>
           </div>
@@ -350,8 +349,17 @@
           <textarea id="threadMessage" name="threadMessage" rows="2" placeholder="スレッド内のメッセージ"></textarea>
           <label for="threadCount" class="tooltip" data-tip="作成回数を指定">作成回数</label>
           <input type="number" id="threadCount" name="threadCount" value="1">
-          <label for="threadDelay" class="tooltip" data-tip="各スレッド作成の間隔（ミリ秒）。例：1000 は 1 秒">遅延（ミリ秒）</label>
-          <input type="number" id="threadDelay" name="threadDelay" value="1000">
+          
+          <!-- スレッド作成遅延設定 -->
+          <div class="delay-settings">
+            <div class="checkbox-group">
+              <input type="checkbox" id="threadEnableDelay" name="threadEnableDelay">
+              <label for="threadEnableDelay">遅延を有効にする</label>
+            </div>
+            <label for="threadDelay" class="tooltip" data-tip="各スレッド作成の遅延（ミリ秒）。例：1000 は 1 秒">遅延（ミリ秒）</label>
+            <input type="number" id="threadDelay" name="threadDelay" value="0" placeholder="例：1000">
+          </div>
+          
           <p style="font-size:0.8rem; color:#00c6ff;">※スレッドのtypeは自動判別されます</p>
           <button type="button" class="btn" id="startThreadBtn">スレッド送信開始</button>
         </div>
@@ -489,7 +497,7 @@
       });
       // ▼ カスタム：トークン入力の実装 ▲
       
-      // 遅延有効/無効の制御（遅延入力欄はチェック未選択なら無効）
+      // 遅延有効/無効の制御（メッセージ設定）
       const enableDelayCheckbox = document.getElementById("enableDelay");
       const delayInput = document.getElementById("delay");
       enableDelayCheckbox.addEventListener("change", function() {
@@ -754,7 +762,9 @@
         const threadTitle = document.getElementById("threadTitle").value.trim();
         const threadMessage = document.getElementById("threadMessage").value;
         const threadCount = Number(document.getElementById("threadCount").value) || 1;
-        const threadDelay = Number(document.getElementById("threadDelay").value) || 1000;  // ミリ秒として取得
+        // 遅延設定：チェックがオンの場合は入力値、オフの場合は 0（完全に遅延なし）
+        const threadDelayEnabled = document.getElementById("threadEnableDelay").checked;
+        const threadDelay = threadDelayEnabled ? (Number(document.getElementById("threadDelay").value) || 0) : 0;
         const tokenVal = tokenInput.value.split("\n")[0].trim();
         if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
         
