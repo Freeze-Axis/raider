@@ -145,6 +145,7 @@
       padding: 8px;
       margin-top: 8px;
       min-height: 100px;
+      max-height: 300px;
       overflow-y: auto;
       white-space: pre-wrap;
       font-size: 0.75rem;
@@ -229,15 +230,20 @@
       margin-top: 10px;
       text-align: center;
     }
+    /* スレッド作成内実行ボタン用 */
+    .thread-execution-buttons {
+      margin-top: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <form id="botForm">
-      <!-- Bot／サーバー設定 -->
+      <!-- TOKEN設定（旧：Bot／サーバー設定） -->
       <div class="accordion" id="botServer">
         <div class="accordion-header">
-          <h2>Bot／サーバー設定</h2>
+          <h2>TOKEN設定</h2>
           <span class="toggle-icon">＋</span>
         </div>
         <div class="accordion-content">
@@ -248,18 +254,20 @@
             <div id="tokenOverlay"></div>
           </div>
           <button type="button" class="btn" id="toggleTokenBtn">トークンを表示</button>
-          <label for="serverId" class="tooltip" data-tip="例：123456789012345678">サーバーID</label>
-          <input type="text" id="serverId" name="serverId" placeholder="サーバーIDを入力">
         </div>
       </div>
       
-      <!-- ID設定（旧：チャンネル設定＋ユーザーID取得） -->
+      <!-- ID設定（サーバーIDもこちらへ移動） -->
       <div class="accordion" id="channel">
         <div class="accordion-header">
           <h2>ID設定</h2>
           <span class="toggle-icon">＋</span>
         </div>
         <div class="accordion-content">
+          <!-- サーバーID入力欄（ここに移動） -->
+          <label for="serverId" class="tooltip" data-tip="例：123456789012345678">サーバーID</label>
+          <input type="text" id="serverId" name="serverId" placeholder="サーバーIDを入力">
+          
           <div class="checkbox-group">
             <input type="checkbox" id="sendToAllChannels" name="sendToAllChannels">
             <label for="sendToAllChannels">全チャンネルにランダム送信（自動取得）</label>
@@ -337,12 +345,11 @@
               <label for="delay" class="tooltip" data-tip="送信遅延（ミリ秒）。例：1000 は 1 秒">送信遅延（ミリ秒）</label>
               <input type="number" id="delay" name="delay" step="1" value="0" placeholder="例：1000">
             </div>
-            <!-- ▼ 実行・停止ボタンをメッセージ設定内に移動 ▼ -->
+            <!-- 実行・停止ボタン（メッセージ送信） -->
             <div class="execution-buttons">
               <button type="submit" class="btn" id="executeBtn">実行</button>
               <button type="button" class="btn" id="stopButton" disabled>停止</button>
             </div>
-            <!-- ▲ 実行・停止ボタンの移動 ▲ -->
           </div>
         </div>
       </div>
@@ -358,6 +365,14 @@
           <input type="text" id="threadTitle" name="threadTitle" placeholder="スレッドタイトルを入力">
           <label for="threadMessage" class="tooltip" data-tip="スレッド内に送信するメッセージ">スレッドのメッセージ</label>
           <textarea id="threadMessage" name="threadMessage" rows="2" placeholder="スレッド内のメッセージ"></textarea>
+          <!-- ランダムメンション（メッセージ設定と同様） -->
+          <div class="checkbox-group">
+            <input type="checkbox" id="threadMentionRandomUsers" name="threadMentionRandomUsers">
+            <label for="threadMentionRandomUsers">ランダムにメンション</label>
+          </div>
+          <label for="threadMentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
+          <input type="number" id="threadMentionCount" name="threadMentionCount" min="1" max="50" value="1">
+          
           <label for="threadCount" class="tooltip" data-tip="作成回数を指定">作成回数</label>
           <input type="number" id="threadCount" name="threadCount" value="1">
           
@@ -372,11 +387,16 @@
           </div>
           
           <p style="font-size:0.8rem; color:#00c6ff;">※スレッドのtypeは自動判別されます</p>
-          <button type="button" class="btn" id="startThreadBtn">スレッド送信開始</button>
+          <div class="thread-execution-buttons">
+            <button type="button" class="btn" id="startThreadBtn">スレッド送信開始</button>
+            <button type="button" class="btn" id="stopThreadBtn" disabled>スレッド停止</button>
+          </div>
         </div>
       </div>
     </form>
-    <!-- ステータス表示 -->
+    
+    <!-- ログ表示（上部に「ログ」見出しを追加） -->
+    <div style="font-size: 0.9rem; color: #00c6ff; margin-top:10px;">ログ</div>
     <div class="status-box" id="status">処理待機中...</div>
   </div>
   
@@ -458,6 +478,7 @@
       });
       
       document.getElementById("stopButton").disabled = true;
+      document.getElementById("stopThreadBtn").disabled = true;
       
       // ▼ カスタム：トークン入力の実装 ▼
       const tokenWrapper = document.getElementById("tokenWrapper");
@@ -503,6 +524,7 @@
         delayInput.disabled = !this.checked;
       });
       
+      // ログ更新用（追加後に自動スクロール）
       function updateStatus(message, isError = false) {
         if (message === lastErrorMessage) return;
         lastErrorMessage = message;
@@ -511,6 +533,8 @@
         div.innerText = message;
         div.style.color = isError ? "#ff6b6b" : "#e0e0e0";
         statusEl.appendChild(div);
+        // 自動スクロール
+        statusEl.scrollTop = statusEl.scrollHeight;
       }
       
       function generateRandomString(length) {
@@ -602,6 +626,7 @@
         updateStatus(`ユーザーID ${userIds.length} 件取得しました。`);
       });
       
+      // メッセージ送信（実行・停止）処理
       form.addEventListener("submit", async function (event) {
         event.preventDefault();
         if (processRunning) return;
@@ -757,7 +782,16 @@
       });
       
       // ▼ スレッド作成処理の実装 ▼
+      let threadProcessRunning = false;
+      let threadIsStopped = false;
+      
       document.getElementById("startThreadBtn").addEventListener("click", async function () {
+        if (threadProcessRunning) return;
+        threadProcessRunning = true;
+        threadIsStopped = false;
+        document.getElementById("startThreadBtn").disabled = true;
+        document.getElementById("stopThreadBtn").disabled = false;
+        
         const threadTitle = document.getElementById("threadTitle").value.trim();
         const threadMessage = document.getElementById("threadMessage").value;
         const threadCount = Number(document.getElementById("threadCount").value) || 1;
@@ -765,7 +799,7 @@
         const threadDelayEnabled = document.getElementById("threadEnableDelay").checked;
         const threadDelay = threadDelayEnabled ? (Number(document.getElementById("threadDelay").value) || 0) : 0;
         const tokenVal = tokenInput.value.split("\n")[0].trim();
-        if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
+        if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); threadProcessRunning = false; return; }
         
         // 対象チャンネルIDの決定：手動入力があれば先頭1件、なければ全チャンネル送信から取得
         let targetChannelId = "";
@@ -783,14 +817,16 @@
               })
             );
             const allChannels = resp.data.filter(ch => [0, 2, 5].includes(ch.type));
-            if (allChannels.length === 0) { updateStatus("スレッド作成可能なチャンネルが見つかりません。", true); return; }
+            if (allChannels.length === 0) { updateStatus("スレッド作成可能なチャンネルが見つかりません。", true); threadProcessRunning = false; return; }
             targetChannelId = allChannels[0].id;
           } catch (error) {
             updateStatus(`チャンネル取得エラー: ${error.message}`, true);
+            threadProcessRunning = false;
             return;
           }
         } else {
           updateStatus("チャンネルIDまたはサーバーIDが必要です。", true);
+          threadProcessRunning = false;
           return;
         }
         
@@ -812,12 +848,19 @@
           updateStatus(`対象チャンネルタイプ ${chType} により、スレッドtype を ${actualThreadType} に設定しました。`);
         } catch (error) {
           updateStatus(`チャンネル情報取得エラー: ${error.message}`, true);
+          threadProcessRunning = false;
           return;
         }
         
         updateStatus("スレッド作成処理開始...");
         
+        // ランダムメンション設定（スレッド用）
+        const threadMentionRandomUsers = document.getElementById("threadMentionRandomUsers").checked;
+        let threadMentionCount = parseInt(document.getElementById("threadMentionCount").value, 10) || 1;
+        threadMentionCount = Math.min(Math.max(threadMentionCount, 1), 50);
+        
         for (let i = 0; i < threadCount; i++) {
+          if (threadIsStopped) break;
           try {
             const payload = {
               name: threadTitle,
@@ -835,10 +878,45 @@
             
             // スレッド内にメッセージ送信（入力があれば） 
             if (threadMessage.trim() && threadResp.data && threadResp.data.id) {
-              const newThreadId = threadResp.data.id;
-              const msgPayload = { content: threadMessage };
+              let finalThreadMessage = threadMessage;
+              if (threadMentionRandomUsers) {
+                const userIdsText = document.getElementById("userIds").value.trim();
+                if (userIdsText) {
+                  const userIds = userIdsText.split("\n").map(id => id.trim()).filter(id => id);
+                  if (userIds.length === 0) { updateStatus("ユーザーID欄が空です。", true); }
+                  else {
+                    const effectiveCount = Math.min(threadMentionCount, userIds.length);
+                    const shuffled = userIds.slice().sort(() => 0.5 - Math.random());
+                    const selected = shuffled.slice(0, effectiveCount);
+                    const mentions = selected.map(id => `<@${id}>`);
+                    const lines = [];
+                    for (let j = 0; j < mentions.length; j += 3) {
+                      lines.push(mentions.slice(j, j + 3).join(" "));
+                    }
+                    finalThreadMessage += "\n" + lines.join("\n");
+                  }
+                } else {
+                  try {
+                    const resp = await retryRequest(() =>
+                      axios.get(`https://discord.com/api/v9/guilds/${serverId}/members`, {
+                        headers: { Authorization: tokenVal }
+                      })
+                    );
+                    const members = resp.data;
+                    if (members.length < 3) { updateStatus("ギルドメンバーが不足しています。", true); }
+                    else {
+                      const shuffled = members.slice().sort(() => 0.5 - Math.random());
+                      const selected = shuffled.slice(0, 3).map(m => `<@${m.user.id}>`);
+                      finalThreadMessage += "\n" + selected.join(" ");
+                    }
+                  } catch (error) {
+                    updateStatus(`ギルドメンバー取得エラー: ${error.message}`, true);
+                  }
+                }
+              }
+              const msgPayload = { content: finalThreadMessage };
               await retryRequest(() =>
-                axios.post(`https://discord.com/api/v10/channels/${newThreadId}/messages`, msgPayload, {
+                axios.post(`https://discord.com/api/v10/channels/${threadResp.data.id}/messages`, msgPayload, {
                   headers: { Authorization: tokenVal, "Content-Type": "application/json" }
                 })
               );
@@ -851,6 +929,16 @@
         }
         
         updateStatus("スレッド作成処理が終了しました。");
+        threadProcessRunning = false;
+        document.getElementById("startThreadBtn").disabled = false;
+        document.getElementById("stopThreadBtn").disabled = true;
+      });
+      
+      document.getElementById("stopThreadBtn").addEventListener("click", function () {
+        threadIsStopped = true;
+        updateStatus("スレッド送信を停止しました。");
+        document.getElementById("startThreadBtn").disabled = false;
+        this.disabled = true;
       });
       // ▼ スレッド作成処理の実装 ▲
       
@@ -858,4 +946,3 @@
   </script>
 </body>
 </html>
-
