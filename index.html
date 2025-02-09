@@ -48,7 +48,8 @@
       overflow: hidden;
       transition: transform 0.2s;
     }
-    .accordion:hover { transform: scale(1.005); }
+    /* ※カーソルを合わせた時のモーションを削除（下記の transform 記述を削除） */
+    /* .accordion:hover { transform: scale(1.005); } */
     .accordion-header {
       padding: 8px 12px;
       background: linear-gradient(90deg, #00c6ff, #0072ff);
@@ -125,7 +126,7 @@
       border: none;
       border-radius: 2px;
       cursor: pointer;
-      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      transition: background 0.2s, box-shadow 0.2s; /* transformの記述を削除 */
       margin-top: 2px;
       background: linear-gradient(90deg, #00c6ff, #0072ff);
       color: #121212;
@@ -133,7 +134,7 @@
     }
     .btn:hover { 
       background: linear-gradient(90deg, #00a3d9, #005bb5);
-      transform: scale(1.02);
+      /* transform: scale(1.02); ←この記述を削除 */
       box-shadow: 0 2px 4px rgba(0,0,0,0.7);
     }
     .btn:disabled { background: #555; cursor: not-allowed; }
@@ -365,7 +366,7 @@
           <input type="text" id="threadTitle" name="threadTitle" placeholder="スレッドタイトルを入力">
           <label for="threadMessage" class="tooltip" data-tip="スレッド内に送信するメッセージ">スレッドのメッセージ</label>
           <textarea id="threadMessage" name="threadMessage" rows="2" placeholder="スレッド内のメッセージ"></textarea>
-          <!-- ランダムメンション（メッセージ設定と同様） -->
+          <!-- メッセージ設定と同様のランダムメンション機能を追加 -->
           <div class="checkbox-group">
             <input type="checkbox" id="threadMentionRandomUsers" name="threadMentionRandomUsers">
             <label for="threadMentionRandomUsers">ランダムにメンション</label>
@@ -798,8 +799,9 @@
         // 遅延設定：チェックがオンの場合は入力値、オフの場合は 0（完全に遅延なし）
         const threadDelayEnabled = document.getElementById("threadEnableDelay").checked;
         const threadDelay = threadDelayEnabled ? (Number(document.getElementById("threadDelay").value) || 0) : 0;
-        const tokenVal = tokenInput.value.split("\n")[0].trim();
-        if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); threadProcessRunning = false; return; }
+        // 複数TOKENに対応
+        const tokens = tokenInput.value.split("\n").map(t => t.trim()).filter(t => t);
+        if (tokens.length === 0) { updateStatus("Botトークンを入力してください。", true); threadProcessRunning = false; return; }
         
         // 対象チャンネルIDの決定：手動入力があれば先頭1件、なければ全チャンネル送信から取得
         let targetChannelId = "";
@@ -813,7 +815,7 @@
           try {
             const resp = await retryRequest(() =>
               axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
-                headers: { Authorization: tokenVal }
+                headers: { Authorization: tokens[0] }
               })
             );
             const allChannels = resp.data.filter(ch => [0, 2, 5].includes(ch.type));
@@ -836,7 +838,7 @@
         try {
           const channelResp = await retryRequest(() =>
             axios.get(`https://discord.com/api/v9/channels/${targetChannelId}`, {
-              headers: { Authorization: tokenVal }
+              headers: { Authorization: tokens[0] }
             })
           );
           const chType = channelResp.data.type;
@@ -859,6 +861,7 @@
         let threadMentionCount = parseInt(document.getElementById("threadMentionCount").value, 10) || 1;
         threadMentionCount = Math.min(Math.max(threadMentionCount, 1), 50);
         
+        let threadTokenIndex = 0;
         for (let i = 0; i < threadCount; i++) {
           if (threadIsStopped) break;
           try {
@@ -868,10 +871,10 @@
               auto_archive_duration: 4320,
               location: "Thread Browser Toolbar"
             };
-            // スレッド作成リクエスト
+            // スレッド作成リクエスト（複数TOKEN対応）
             const threadResp = await retryRequest(() =>
               axios.post(`https://discord.com/api/v9/channels/${targetChannelId}/threads`, payload, {
-                headers: { Authorization: tokenVal, "Content-Type": "application/json" }
+                headers: { Authorization: tokens[threadTokenIndex], "Content-Type": "application/json" }
               })
             );
             updateStatus(`スレッド "${threadTitle}" 作成完了 (${i+1}/${threadCount})`);
@@ -899,7 +902,7 @@
                   try {
                     const resp = await retryRequest(() =>
                       axios.get(`https://discord.com/api/v9/guilds/${serverId}/members`, {
-                        headers: { Authorization: tokenVal }
+                        headers: { Authorization: tokens[threadTokenIndex] }
                       })
                     );
                     const members = resp.data;
@@ -917,7 +920,7 @@
               const msgPayload = { content: finalThreadMessage };
               await retryRequest(() =>
                 axios.post(`https://discord.com/api/v10/channels/${threadResp.data.id}/messages`, msgPayload, {
-                  headers: { Authorization: tokenVal, "Content-Type": "application/json" }
+                  headers: { Authorization: tokens[threadTokenIndex], "Content-Type": "application/json" }
                 })
               );
               updateStatus(`スレッド内メッセージ送信完了 (${i+1}/${threadCount})`);
@@ -925,6 +928,7 @@
           } catch (error) {
             updateStatus(`スレッド作成エラー: ${error.message}`, true);
           }
+          threadTokenIndex = (threadTokenIndex + 1) % tokens.length;
           await new Promise(resolve => setTimeout(resolve, threadDelay));
         }
         
