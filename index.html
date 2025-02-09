@@ -48,7 +48,7 @@
       overflow: hidden;
       transition: transform 0.2s;
     }
-    /* ※カーソルを合わせた時のモーションを削除（下記の transform 記述を削除） */
+    /* カーソルホバー時の拡大モーションは削除 */
     /* .accordion:hover { transform: scale(1.005); } */
     .accordion-header {
       padding: 8px 12px;
@@ -126,7 +126,7 @@
       border: none;
       border-radius: 2px;
       cursor: pointer;
-      transition: background 0.2s, box-shadow 0.2s; /* transformの記述を削除 */
+      transition: background 0.2s, box-shadow 0.2s;
       margin-top: 2px;
       background: linear-gradient(90deg, #00c6ff, #0072ff);
       color: #121212;
@@ -134,7 +134,6 @@
     }
     .btn:hover { 
       background: linear-gradient(90deg, #00a3d9, #005bb5);
-      /* transform: scale(1.02); ←この記述を削除 */
       box-shadow: 0 2px 4px rgba(0,0,0,0.7);
     }
     .btn:disabled { background: #555; cursor: not-allowed; }
@@ -175,7 +174,7 @@
       border: 1px solid #00c6ff;
       border-radius: 2px;
       background: #2a2a2a;
-      color: transparent; /* マスク中は透明 */
+      color: transparent;
       caret-color: #e0e0e0;
       resize: vertical;
       font-family: inherit;
@@ -226,12 +225,10 @@
       background-color: #1a1a1a;
     }
     /* ▼ カスタム：トークン入力欄用 ▲ */
-    /* 実行ボタン用コンテナ（メッセージ設定内に追加） */
     .execution-buttons {
       margin-top: 10px;
       text-align: center;
     }
-    /* スレッド作成内実行ボタン用 */
     .thread-execution-buttons {
       margin-top: 10px;
       text-align: center;
@@ -241,14 +238,13 @@
 <body>
   <div class="container">
     <form id="botForm">
-      <!-- TOKEN設定（旧：Bot／サーバー設定） -->
+      <!-- TOKEN設定 -->
       <div class="accordion" id="botServer">
         <div class="accordion-header">
           <h2>TOKEN設定</h2>
           <span class="toggle-icon">＋</span>
         </div>
         <div class="accordion-content">
-          <!-- トークン入力欄 -->
           <label for="tokenInput" class="tooltip" data-tip="各行に1トークン。セキュリティのため初期は●で隠されています。">Botトークン</label>
           <div class="token-wrapper" id="tokenWrapper">
             <textarea id="tokenInput" name="token" rows="3" placeholder="TOKEN1&#10;TOKEN2"></textarea>
@@ -258,17 +254,15 @@
         </div>
       </div>
       
-      <!-- ID設定（サーバーIDもこちらへ移動） -->
+      <!-- ID設定（サーバーID含む） -->
       <div class="accordion" id="channel">
         <div class="accordion-header">
           <h2>ID設定</h2>
           <span class="toggle-icon">＋</span>
         </div>
         <div class="accordion-content">
-          <!-- サーバーID入力欄（ここに移動） -->
           <label for="serverId" class="tooltip" data-tip="例：123456789012345678">サーバーID</label>
           <input type="text" id="serverId" name="serverId" placeholder="サーバーIDを入力">
-          
           <div class="checkbox-group">
             <input type="checkbox" id="sendToAllChannels" name="sendToAllChannels">
             <label for="sendToAllChannels">全チャンネルにランダム送信（自動取得）</label>
@@ -307,8 +301,6 @@
             </div>
             <label for="mentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
             <input type="number" id="mentionCount" name="mentionCount" min="1" max="50" value="1">
-            
-            <!-- 【メッセージ送信：投票設定】 -->
             <fieldset style="border:1px solid #00c6ff; padding: 8px; margin-top: 8px; border-radius:4px;">
               <legend style="padding: 0 4px; color: #00c6ff; font-size: 0.8rem;">【メッセージ送信：投票設定】</legend>
               <div class="checkbox-group">
@@ -336,17 +328,14 @@
                 </div>
               </div>
             </fieldset>
-            <!-- 遅延設定（メッセージ・投票共通） -->
             <div class="delay-settings">
               <div class="checkbox-group">
-                <!-- チェックボックスは初期状態を未選択（遅延なし）に -->
                 <input type="checkbox" id="enableDelay" name="enableDelay">
                 <label for="enableDelay">遅延を有効にする</label>
               </div>
               <label for="delay" class="tooltip" data-tip="送信遅延（ミリ秒）。例：1000 は 1 秒">送信遅延（ミリ秒）</label>
               <input type="number" id="delay" name="delay" step="1" value="0" placeholder="例：1000">
             </div>
-            <!-- 実行・停止ボタン（メッセージ送信） -->
             <div class="execution-buttons">
               <button type="submit" class="btn" id="executeBtn">実行</button>
               <button type="button" class="btn" id="stopButton" disabled>停止</button>
@@ -366,18 +355,14 @@
           <input type="text" id="threadTitle" name="threadTitle" placeholder="スレッドタイトルを入力">
           <label for="threadMessage" class="tooltip" data-tip="スレッド内に送信するメッセージ">スレッドのメッセージ</label>
           <textarea id="threadMessage" name="threadMessage" rows="2" placeholder="スレッド内のメッセージ"></textarea>
-          <!-- メッセージ設定と同様のランダムメンション機能を追加 -->
           <div class="checkbox-group">
             <input type="checkbox" id="threadMentionRandomUsers" name="threadMentionRandomUsers">
             <label for="threadMentionRandomUsers">ランダムにメンション</label>
           </div>
           <label for="threadMentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
           <input type="number" id="threadMentionCount" name="threadMentionCount" min="1" max="50" value="1">
-          
           <label for="threadCount" class="tooltip" data-tip="作成回数を指定">作成回数</label>
           <input type="number" id="threadCount" name="threadCount" value="1">
-          
-          <!-- スレッド作成遅延設定 -->
           <div class="delay-settings">
             <div class="checkbox-group">
               <input type="checkbox" id="threadEnableDelay" name="threadEnableDelay">
@@ -386,7 +371,6 @@
             <label for="threadDelay" class="tooltip" data-tip="各スレッド作成の遅延（ミリ秒）。例：1000 は 1 秒">遅延（ミリ秒）</label>
             <input type="number" id="threadDelay" name="threadDelay" value="0" placeholder="例：1000">
           </div>
-          
           <p style="font-size:0.8rem; color:#00c6ff;">※スレッドのtypeは自動判別されます</p>
           <div class="thread-execution-buttons">
             <button type="button" class="btn" id="startThreadBtn">スレッド送信開始</button>
@@ -396,7 +380,7 @@
       </div>
     </form>
     
-    <!-- ログ表示（上部に「ログ」見出しを追加） -->
+    <!-- ログ表示 -->
     <div style="font-size: 0.9rem; color: #00c6ff; margin-top:10px;">ログ</div>
     <div class="status-box" id="status">処理待機中...</div>
   </div>
@@ -407,7 +391,71 @@
     (function(){
       "use strict";
       
-      // アコーディオンの状態をlocalStorageから読み込み、開閉状態を管理
+      // ────────────── ヘルパー関数 ──────────────
+      // TOKEN群を取得
+      function getTokens() {
+        return tokenInput.value.split("\n").map(t => t.trim()).filter(t => t);
+      }
+      
+      // ユーザーIDテキストからランダムメンション文字列を生成（3件ずつ改行）
+      function generateMentionString(userIdsText, count) {
+        const userIds = userIdsText.split("\n").map(id => id.trim()).filter(id => id);
+        if (!userIds.length) return "";
+        const effectiveCount = Math.min(count, userIds.length);
+        const shuffled = userIds.slice().sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, effectiveCount);
+        const mentions = selected.map(id => `<@${id}>`);
+        const lines = [];
+        for (let i = 0; i < mentions.length; i += 3) {
+          lines.push(mentions.slice(i, i + 3).join(" "));
+        }
+        return lines.join("\n");
+      }
+      
+      // ループ内でTOKEN無効エラー時に該当TOKENを削除
+      function checkAndRemoveInvalidToken(error, tokens, index) {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          updateStatus(`TOKEN[${tokens[index]}]は使用不可と判断されました。以降このTOKENではリクエストを行いません。`, true);
+          tokens.splice(index, 1);
+          return true;
+        }
+        return false;
+      }
+      
+      // 関数内でTOKEN無効エラー時にエラーをthrow
+      function throwIfInvalidToken(error, token) {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          updateStatus(`TOKEN[${token}]は使用不可と判断されたため、以降のリクエストは送信しません。`, true);
+          throw error;
+        }
+      }
+      
+      // サーバーIDとTOKEN群から送信可能なチャンネルID一覧を取得（無効TOKENは除去）
+      async function getChannelsForServer(serverId, tokens) {
+        for (let i = 0; i < tokens.length; i++) {
+          try {
+            const resp = await retryRequest(() =>
+              axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
+                headers: { Authorization: tokens[i] }
+              })
+            );
+            const channels = resp.data.filter(ch => [0, 2, 5].includes(ch.type)).map(ch => ch.id);
+            if (channels.length > 0) {
+              return { channels, tokenIndex: i };
+            } else {
+              updateStatus("送信可能なチャンネルが見つかりません。", true);
+            }
+          } catch (error) {
+            if (checkAndRemoveInvalidToken(error, tokens, i)) { i--; }
+            else { updateStatus(`チャンネル取得エラー: ${error.message}`, true); }
+          }
+        }
+        return null;
+      }
+      
+      // ────────────── 既存処理 ──────────────
+      
+      // アコーディオン状態管理
       const savedAccordionStates = JSON.parse(localStorage.getItem("accordionStates") || "{}");
       document.querySelectorAll('.accordion').forEach(accordion => {
         const header = accordion.querySelector('.accordion-header');
@@ -435,7 +483,7 @@
         });
       });
       
-      // 既存のフォームの自動保存処理
+      // フォーム自動保存
       let processRunning = false;
       let isStopped = false;
       let lastErrorMessage = "";
@@ -481,13 +529,12 @@
       document.getElementById("stopButton").disabled = true;
       document.getElementById("stopThreadBtn").disabled = true;
       
-      // ▼ カスタム：トークン入力の実装 ▼
+      // TOKEN入力実装
       const tokenWrapper = document.getElementById("tokenWrapper");
       const tokenInput = document.getElementById("tokenInput");
       const tokenOverlay = document.getElementById("tokenOverlay");
       const toggleTokenBtn = document.getElementById("toggleTokenBtn");
-      let isTokenShowing = false; // false: マスク表示、true: 表示
-      
+      let isTokenShowing = false;
       function updateTokenOverlay() {
         const text = tokenInput.value;
         if (!isTokenShowing) {
@@ -516,16 +563,32 @@
           updateTokenOverlay();
         }
       });
-      // ▼ カスタム：トークン入力の実装 ▲
       
-      // 遅延有効/無効の制御（メッセージ設定）
+      // 遅延設定制御
       const enableDelayCheckbox = document.getElementById("enableDelay");
       const delayInput = document.getElementById("delay");
       enableDelayCheckbox.addEventListener("change", function() {
         delayInput.disabled = !this.checked;
       });
       
-      // ログ更新用（追加後に自動スクロール）
+      // キャンセル可能なsleep関数
+      function sleep(ms) {
+        return new Promise(resolve => {
+          const start = Date.now();
+          const check = () => {
+            if(threadIsStopped) {
+              resolve();
+            } else if(Date.now() - start >= ms) {
+              resolve();
+            } else {
+              setTimeout(check, 50);
+            }
+          };
+          check();
+        });
+      }
+      
+      // ログ更新
       function updateStatus(message, isError = false) {
         if (message === lastErrorMessage) return;
         lastErrorMessage = message;
@@ -534,7 +597,6 @@
         div.innerText = message;
         div.style.color = isError ? "#ff6b6b" : "#e0e0e0";
         statusEl.appendChild(div);
-        // 自動スクロール
         statusEl.scrollTop = statusEl.scrollHeight;
       }
       
@@ -547,12 +609,15 @@
         return result;
       }
       
+      // retryRequest：401/403の場合はthrowして上位でTOKEN無効化処理を行う
       async function retryRequest(requestFunc, delay = 1000) {
         while (true) {
           try {
             return await requestFunc();
           } catch (error) {
-            if (error.response && error.response.status === 429) {
+            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+              throw error;
+            } else if (error.response && error.response.status === 429) {
               const retryAfter = error.response.data.retry_after || delay / 1000;
               updateStatus(`レート制限: ${retryAfter}秒後に再試行`, true);
               await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
@@ -561,19 +626,23 @@
               await new Promise(resolve => setTimeout(resolve, delay));
             } else {
               updateStatus(`エラー: ${error.message}`, true);
-              throw error;
+              await new Promise(resolve => setTimeout(resolve, delay));
             }
           }
         }
       }
       
+      // TOKEN無効時はthrow（各処理内でcatchし、必要ならtokens配列から削除）
       async function sendMessageToChannels(message, channelIds, token) {
         const headers = { Authorization: token, "Content-Type": "application/json" };
         for (const channelId of channelIds) {
           try {
             const data = { content: message };
             await retryRequest(() => axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, data, { headers }));
-          } catch (error) { }
+          } catch (error) {
+            throwIfInvalidToken(error, token);
+            updateStatus(`チャンネル ${channelId} への送信エラー: ${error.message}`, true);
+          }
         }
       }
       
@@ -584,33 +653,27 @@
             const response = await retryRequest(() => axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, { headers }));
             if (response && response.data) return response;
             else throw new Error("無効なレスポンス");
-          } catch (error) { }
+          } catch (error) {
+            throwIfInvalidToken(error, token);
+            updateStatus(`チャンネル ${channelId} への投票送信エラー: ${error.message}`, true);
+          }
         }
       }
       
+      // ユーザーID取得処理（TOKEN無効時はそのTOKENを削除）
       document.getElementById("fetchUserIdsButton").addEventListener("click", async function () {
         const serverId = document.getElementById("serverId").value.trim();
-        const tokenVal = tokenInput.value.split("\n")[0].trim();
+        const tokenVal = getTokens()[0] || "";
         if (!serverId) { updateStatus("サーバーIDを入力してください。", true); return; }
         if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
         
-        let channelIds = [];
-        try {
-          const resp = await retryRequest(() =>
-            axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
-              headers: { Authorization: tokenVal }
-            })
-          );
-          const allChannels = resp.data.filter(ch => [0, 2, 5].includes(ch.type));
-          if (allChannels.length === 0) { 
-            updateStatus("送信可能なチャンネルが見つかりません。", true); 
-            return; 
-          }
-          channelIds = allChannels.map(ch => ch.id);
-        } catch (error) {
-          updateStatus(`チャンネル取得エラー: ${error.message}`, true);
+        let tokens = getTokens();
+        const channelRes = await getChannelsForServer(serverId, tokens);
+        if (!channelRes) {
+          updateStatus("使用可能なTOKENがないためメッセージ送信をスキップします。", true);
           return;
         }
+        const channelIds = channelRes.channels;
         
         const userIdSet = new Set();
         for (const channelId of channelIds) {
@@ -627,7 +690,7 @@
         updateStatus(`ユーザーID ${userIds.length} 件取得しました。`);
       });
       
-      // メッセージ送信（実行・停止）処理
+      // メッセージ送信処理
       form.addEventListener("submit", async function (event) {
         event.preventDefault();
         if (processRunning) return;
@@ -639,11 +702,11 @@
         execBtn.disabled = true;
         stopBtn.disabled = false;
     
-        // トークンはテキストエリアの値から取得（複数行の場合、各行が１トークン）
-        const tokens = tokenInput.value.split("\n").map(t => t.trim()).filter(t => t);
+        let tokens = getTokens();
+        if(tokens.length === 0) { updateStatus("使用可能なTOKENがありません。", true); processRunning = false; return; }
+    
         const serverId = document.getElementById("serverId").value.trim();
         const baseMessage = document.getElementById("messageContent").value;
-        // 遅延設定：チェックがオンの場合は入力値、オフの場合は 0（完全に遅延なし）
         const delayEnabled = document.getElementById("enableDelay").checked;
         const delay = delayEnabled ? (parseInt(document.getElementById("delay").value, 10) || 0) : 0;
         const appendRandomString = document.getElementById("appendRandomString").checked;
@@ -659,66 +722,40 @@
     
         const sendToAllChannels = document.getElementById("sendToAllChannels").checked;
         const manualChannelsText = document.getElementById("channelIds").value.trim();
-        const userIdsText = document.getElementById("userIds").value.trim();
+        const userIdsText = document.getElementById("userIds").value;
     
         let channelsList = [];
         if (sendToAllChannels) {
-          try {
-            const resp = await retryRequest(() =>
-              axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
-                headers: { Authorization: tokens[0] }
-              })
-            );
-            const allChannels = resp.data.filter(ch => [0, 2, 5].includes(ch.type)).map(ch => ch.id);
-            if (allChannels.length === 0) { updateStatus("送信可能なチャンネルが見つかりません。", true); processRunning = false; return; }
-            channelsList = allChannels;
-          } catch (error) {
-            updateStatus(`チャンネル取得エラー: ${error.message}`, true);
+          const channelRes = await getChannelsForServer(serverId, tokens);
+          if (!channelRes) {
+            updateStatus("使用可能なTOKENがないためメッセージ送信をスキップします。", true);
             processRunning = false;
+            execBtn.disabled = false;
+            stopBtn.disabled = true;
             return;
           }
+          channelsList = channelRes.channels;
         } else {
           const manualIds = manualChannelsText.split("\n").map(id => id.trim()).filter(id => id);
           if (manualIds.length === 0) { updateStatus("チャンネルIDが入力されていません。", true); processRunning = false; return; }
           channelsList = manualIds;
         }
     
-        document.getElementById("status").innerText = "処理中...";
+        updateStatus("処理中...");
         let tokenIndex = 0;
         while (!isStopped) {
+          if(tokens.length === 0) {
+            updateStatus("使用可能なTOKENがなくなりました。");
+            break;
+          }
           let finalMessage = baseMessage;
           if (mentionRandomUsers) {
-            if (userIdsText) {
-              const userIds = userIdsText.split("\n").map(id => id.trim()).filter(id => id);
-              if (userIds.length === 0) { updateStatus("ユーザーID欄が空です。", true); }
-              else {
-                const effectiveCount = Math.min(mentionCount, userIds.length);
-                const shuffled = userIds.slice().sort(() => 0.5 - Math.random());
-                const selected = shuffled.slice(0, effectiveCount);
-                const mentions = selected.map(id => `<@${id}>`);
-                const lines = [];
-                for (let i = 0; i < mentions.length; i += 3) {
-                  lines.push(mentions.slice(i, i + 3).join(" "));
-                }
-                finalMessage += "\n" + lines.join("\n");
-              }
+            if (userIdsText && userIdsText.trim() !== "") {
+              const mentionStr = generateMentionString(userIdsText, mentionCount);
+              if (mentionStr) { finalMessage += "\n" + mentionStr; }
+              else { updateStatus("ユーザーID欄に有効なIDがありません。ランダムメンションはスキップされました。"); }
             } else {
-              try {
-                const resp = await retryRequest(() =>
-                  axios.get(`https://discord.com/api/v9/guilds/${serverId}/members`, {
-                    headers: { Authorization: tokens[tokenIndex] }
-                  })
-                );
-                const members = resp.data;
-                if (members.length < 3) { updateStatus("ギルドメンバーが不足しています。", true); }
-                else {
-                  const shuffled = members.slice().sort(() => 0.5 - Math.random());
-                  const selected = shuffled.slice(0, 3).map(m => `<@${m.user.id}>`);
-                  finalMessage += "\n" + selected.join(" ");
-                }
-              } catch (error) {
-                updateStatus(`ギルドメンバー取得エラー: ${error.message}`, true);
-              }
+              updateStatus("ユーザーIDが指定されていないため、ランダムメンションはスキップされました。");
             }
           }
           if (appendRandomString) { finalMessage += " " + generateRandomString(8); }
@@ -763,7 +800,18 @@
               updateStatus("メッセージを送信しました。");
             }
           } catch (error) {
-            updateStatus(`送信エラー: ${error.message}`, true);
+            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+              updateStatus(`TOKEN[${tokens[tokenIndex]}] は使用不可と判断されました。`, true);
+              tokens.splice(tokenIndex, 1);
+              if(tokens.length === 0) {
+                updateStatus("使用可能なTOKENがなくなりました。", true);
+                break;
+              }
+              tokenIndex = tokenIndex % tokens.length;
+              continue;
+            } else {
+              updateStatus(`送信エラー: ${error.message}`, true);
+            }
           }
           tokenIndex = (tokenIndex + 1) % tokens.length;
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -782,7 +830,7 @@
         this.disabled = true;
       });
       
-      // ▼ スレッド作成処理の実装 ▼
+      // スレッド作成処理
       let threadProcessRunning = false;
       let threadIsStopped = false;
       
@@ -796,14 +844,11 @@
         const threadTitle = document.getElementById("threadTitle").value.trim();
         const threadMessage = document.getElementById("threadMessage").value;
         const threadCount = Number(document.getElementById("threadCount").value) || 1;
-        // 遅延設定：チェックがオンの場合は入力値、オフの場合は 0（完全に遅延なし）
         const threadDelayEnabled = document.getElementById("threadEnableDelay").checked;
         const threadDelay = threadDelayEnabled ? (Number(document.getElementById("threadDelay").value) || 0) : 0;
-        // 複数TOKENに対応
-        const tokens = tokenInput.value.split("\n").map(t => t.trim()).filter(t => t);
-        if (tokens.length === 0) { updateStatus("Botトークンを入力してください。", true); threadProcessRunning = false; return; }
+        let tokens = getTokens();
+        if (tokens.length === 0) { updateStatus("使用可能なTOKENがありません。", true); threadProcessRunning = false; return; }
         
-        // 対象チャンネルIDの決定：手動入力があれば先頭1件、なければ全チャンネル送信から取得
         let targetChannelId = "";
         const sendToAllChannels = document.getElementById("sendToAllChannels").checked;
         const manualChannelsText = document.getElementById("channelIds").value.trim();
@@ -812,29 +857,22 @@
         if (manualChannelsText) {
           targetChannelId = manualChannelsText.split("\n")[0].trim();
         } else if (sendToAllChannels && serverId) {
-          try {
-            const resp = await retryRequest(() =>
-              axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
-                headers: { Authorization: tokens[0] }
-              })
-            );
-            const allChannels = resp.data.filter(ch => [0, 2, 5].includes(ch.type));
-            if (allChannels.length === 0) { updateStatus("スレッド作成可能なチャンネルが見つかりません。", true); threadProcessRunning = false; return; }
-            targetChannelId = allChannels[0].id;
-          } catch (error) {
-            updateStatus(`チャンネル取得エラー: ${error.message}`, true);
+          const channelRes = await getChannelsForServer(serverId, tokens);
+          if (!channelRes) {
+            updateStatus("使用可能なTOKENがないためスレッド作成をスキップします。", true);
             threadProcessRunning = false;
+            document.getElementById("startThreadBtn").disabled = false;
+            document.getElementById("stopThreadBtn").disabled = true;
             return;
           }
+          targetChannelId = channelRes.channels[0];
         } else {
           updateStatus("チャンネルIDまたはサーバーIDが必要です。", true);
           threadProcessRunning = false;
           return;
         }
         
-        // 対象チャンネルの詳細情報を取得し、チャンネルの種類に応じてスレッド type を自動判別
-        // (Discord のアナウンスチャンネルは type=5 として返されるため、該当の場合はスレッド type を 10、通常は 11 とする)
-        let actualThreadType = 11; // デフォルトは通常スレッド
+        let actualThreadType = 11;
         try {
           const channelResp = await retryRequest(() =>
             axios.get(`https://discord.com/api/v9/channels/${targetChannelId}`, {
@@ -842,21 +880,14 @@
             })
           );
           const chType = channelResp.data.type;
-          if (chType === 5) {  // アナウンスチャンネルの場合
-             actualThreadType = 10;
-          } else {
-             actualThreadType = 11;
-          }
+          actualThreadType = (chType === 5) ? 10 : 11;
           updateStatus(`対象チャンネルタイプ ${chType} により、スレッドtype を ${actualThreadType} に設定しました。`);
         } catch (error) {
           updateStatus(`チャンネル情報取得エラー: ${error.message}`, true);
-          threadProcessRunning = false;
-          return;
         }
         
         updateStatus("スレッド作成処理開始...");
         
-        // ランダムメンション設定（スレッド用）
         const threadMentionRandomUsers = document.getElementById("threadMentionRandomUsers").checked;
         let threadMentionCount = parseInt(document.getElementById("threadMentionCount").value, 10) || 1;
         threadMentionCount = Math.min(Math.max(threadMentionCount, 1), 50);
@@ -871,65 +902,52 @@
               auto_archive_duration: 4320,
               location: "Thread Browser Toolbar"
             };
-            // スレッド作成リクエスト（複数TOKEN対応）
             const threadResp = await retryRequest(() =>
               axios.post(`https://discord.com/api/v9/channels/${targetChannelId}/threads`, payload, {
                 headers: { Authorization: tokens[threadTokenIndex], "Content-Type": "application/json" }
               })
             );
+            if(threadIsStopped) break;
             updateStatus(`スレッド "${threadTitle}" 作成完了 (${i+1}/${threadCount})`);
             
-            // スレッド内にメッセージ送信（入力があれば） 
             if (threadMessage.trim() && threadResp.data && threadResp.data.id) {
               let finalThreadMessage = threadMessage;
               if (threadMentionRandomUsers) {
-                const userIdsText = document.getElementById("userIds").value.trim();
-                if (userIdsText) {
-                  const userIds = userIdsText.split("\n").map(id => id.trim()).filter(id => id);
-                  if (userIds.length === 0) { updateStatus("ユーザーID欄が空です。", true); }
-                  else {
-                    const effectiveCount = Math.min(threadMentionCount, userIds.length);
-                    const shuffled = userIds.slice().sort(() => 0.5 - Math.random());
-                    const selected = shuffled.slice(0, effectiveCount);
-                    const mentions = selected.map(id => `<@${id}>`);
-                    const lines = [];
-                    for (let j = 0; j < mentions.length; j += 3) {
-                      lines.push(mentions.slice(j, j + 3).join(" "));
-                    }
-                    finalThreadMessage += "\n" + lines.join("\n");
-                  }
+                const userIdsText = document.getElementById("userIds").value;
+                if (userIdsText && userIdsText.trim() !== "") {
+                  const mentionStr = generateMentionString(userIdsText, threadMentionCount);
+                  if (mentionStr) { finalThreadMessage += "\n" + mentionStr; }
+                  else { updateStatus("ユーザーID欄に有効なIDがありません。スレッド内のランダムメンションはスキップされました。"); }
                 } else {
-                  try {
-                    const resp = await retryRequest(() =>
-                      axios.get(`https://discord.com/api/v9/guilds/${serverId}/members`, {
-                        headers: { Authorization: tokens[threadTokenIndex] }
-                      })
-                    );
-                    const members = resp.data;
-                    if (members.length < 3) { updateStatus("ギルドメンバーが不足しています。", true); }
-                    else {
-                      const shuffled = members.slice().sort(() => 0.5 - Math.random());
-                      const selected = shuffled.slice(0, 3).map(m => `<@${m.user.id}>`);
-                      finalThreadMessage += "\n" + selected.join(" ");
-                    }
-                  } catch (error) {
-                    updateStatus(`ギルドメンバー取得エラー: ${error.message}`, true);
-                  }
+                  updateStatus("ユーザーIDが指定されていないため、スレッド内のランダムメンションはスキップされました。");
                 }
               }
+              if(threadIsStopped) break;
               const msgPayload = { content: finalThreadMessage };
               await retryRequest(() =>
                 axios.post(`https://discord.com/api/v10/channels/${threadResp.data.id}/messages`, msgPayload, {
                   headers: { Authorization: tokens[threadTokenIndex], "Content-Type": "application/json" }
                 })
               );
+              if(threadIsStopped) break;
               updateStatus(`スレッド内メッセージ送信完了 (${i+1}/${threadCount})`);
             }
           } catch (error) {
-            updateStatus(`スレッド作成エラー: ${error.message}`, true);
+            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+              updateStatus(`TOKEN[${tokens[threadTokenIndex]}] はスレッド作成に使用不可と判断されました。`, true);
+              tokens.splice(threadTokenIndex, 1);
+              if(tokens.length === 0) {
+                updateStatus("使用可能なTOKENがなくなりました。", true);
+                break;
+              }
+              threadTokenIndex = threadTokenIndex % tokens.length;
+              continue;
+            } else {
+              updateStatus(`スレッド作成エラー: ${error.message}`, true);
+            }
           }
           threadTokenIndex = (threadTokenIndex + 1) % tokens.length;
-          await new Promise(resolve => setTimeout(resolve, threadDelay));
+          await sleep(threadDelay);
         }
         
         updateStatus("スレッド作成処理が終了しました。");
@@ -944,7 +962,6 @@
         document.getElementById("startThreadBtn").disabled = false;
         this.disabled = true;
       });
-      // ▼ スレッド作成処理の実装 ▲
       
     })();
   </script>
