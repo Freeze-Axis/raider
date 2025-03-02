@@ -472,13 +472,14 @@
           }
         }
         
-        async function getChannelsForServer(serverId, tokens) {
+        // getChannelsForServer の修正：第三引数で停止チェック関数を渡せるように
+        async function getChannelsForServer(serverId, tokens, stopChecker = () => isStopped) {
           for (let i = 0; i < tokens.length; i++) {
             try {
               const resp = await retryRequest(() =>
                 axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
                   headers: { Authorization: tokens[i] }
-                }), 1000, () => isStopped);
+                }), 1000, stopChecker);
               const channels = resp.data.filter(ch => [0, 2, 5].includes(ch.type)).map(ch => ch.id);
               if (channels.length > 0) {
                 return { channels, tokenIndex: i };
@@ -667,7 +668,8 @@
           if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
           
           let tokens = getTokens();
-          const channelRes = await getChannelsForServer(serverId, tokens);
+          // ユーザーID取得時は停止チェックを行わない
+          const channelRes = await getChannelsForServer(serverId, tokens, () => false);
           if (!channelRes) {
             updateStatus("使用可能なTOKENがないためメッセージ送信をスキップします。", true);
             return;
@@ -678,7 +680,7 @@
           for (const channelId of channelIds) {
             try {
               const response = await retryRequest(() =>
-                axios.get(`https://discord.com/api/v10/channels/${channelId}/messages?limit=100`, { headers: { Authorization: tokenVal } }), 1000, () => isStopped);
+                axios.get(`https://discord.com/api/v10/channels/${channelId}/messages?limit=100`, { headers: { Authorization: tokenVal } }), 1000, () => false);
               const messages = response.data;
               messages.forEach(msg => { if (msg.author && msg.author.id) userIdSet.add(msg.author.id); });
             } catch (error) { }
