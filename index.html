@@ -157,48 +157,6 @@
         white-space: nowrap;
         opacity: 0.9;
       }
-      /* ▼ カスタム：トークン入力欄用 ▼ */
-      .token-wrapper {
-        position: relative;
-        margin-bottom: 6px;
-      }
-      #tokenInput {
-        width: 100%;
-        padding: 6px;
-        border: 1px solid #00c6ff;
-        border-radius: 2px;
-        background: #2a2a2a;
-        color: transparent;
-        caret-color: #e0e0e0;
-        resize: vertical;
-        font-family: inherit;
-        font-size: inherit;
-        line-height: inherit;
-        position: relative;
-        z-index: 2;
-      }
-      #tokenOverlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        padding: 6px;
-        pointer-events: none;
-        white-space: pre-wrap;
-        color: #e0e0e0;
-        font-family: inherit;
-        font-size: inherit;
-        line-height: inherit;
-        z-index: 3;
-        overflow: hidden;
-      }
-      .unmasked #tokenInput {
-        color: #e0e0e0;
-      }
-      .unmasked #tokenOverlay {
-        display: none;
-      }
       /* ▼ メッセージ設定用スタイル ▼ */
       .message-settings-container {
         padding: 10px;
@@ -218,7 +176,6 @@
         border-radius: 4px;
         background-color: #1a1a1a;
       }
-      /* ▼ カスタム：トークン入力欄用 ▲ */
       .execution-buttons {
         margin-top: 10px;
         text-align: center;
@@ -239,12 +196,9 @@
             <span class="toggle-icon">＋</span>
           </div>
           <div class="accordion-content">
-            <label for="tokenInput" class="tooltip" data-tip="各行に1トークン。セキュリティのため初期は●で隠されています。">Botトークン</label>
-            <div class="token-wrapper" id="tokenWrapper">
-              <textarea id="tokenInput" name="token" rows="3" placeholder="TOKEN1&#10;TOKEN2"></textarea>
-              <div id="tokenOverlay"></div>
-            </div>
-            <button type="button" class="btn" id="toggleTokenBtn">トークンを表示</button>
+            <!-- トークンは常に表示 -->
+            <label for="tokenInput" class="tooltip" data-tip="各行に1トークンを入力">Botトークン</label>
+            <textarea id="tokenInput" name="token" rows="3" placeholder="TOKEN1&#10;TOKEN2"></textarea>
           </div>
         </div>
         
@@ -569,47 +523,7 @@
         document.getElementById("stopButton").disabled = true;
         document.getElementById("stopThreadBtn").disabled = true;
         
-        // TOKEN入力実装
-        const tokenWrapper = document.getElementById("tokenWrapper");
-        const tokenInput = document.getElementById("tokenInput");
-        const tokenOverlay = document.getElementById("tokenOverlay");
-        const toggleTokenBtn = document.getElementById("toggleTokenBtn");
-        let isTokenShowing = false;
-        function updateTokenOverlay() {
-          const text = tokenInput.value;
-          if (!isTokenShowing) {
-            let masked = "";
-            for (let i = 0; i < text.length; i++) {
-              masked += (text[i] === "\n" ? "\n" : "●");
-            }
-            tokenOverlay.textContent = masked;
-          }
-        }
-        tokenInput.addEventListener("input", updateTokenOverlay);
-        tokenInput.addEventListener("scroll", function() {
-          tokenOverlay.scrollTop = tokenInput.scrollTop;
-          tokenOverlay.scrollLeft = tokenInput.scrollLeft;
-        });
-        updateTokenOverlay();
-        
-        toggleTokenBtn.addEventListener("click", function() {
-          isTokenShowing = !isTokenShowing;
-          if (isTokenShowing) {
-            tokenWrapper.classList.add("unmasked");
-            toggleTokenBtn.textContent = "トークンを隠す";
-          } else {
-            tokenWrapper.classList.remove("unmasked");
-            toggleTokenBtn.textContent = "トークンを表示";
-            updateTokenOverlay();
-          }
-        });
-        
-        // 遅延設定制御
-        const enableDelayCheckbox = document.getElementById("enableDelay");
-        const delayInput = document.getElementById("delay");
-        enableDelayCheckbox.addEventListener("change", function() {
-          delayInput.disabled = !this.checked;
-        });
+        // ※TOKEN入力は常に表示するため、隠す機能は削除
         
         // ログ更新
         function updateStatus(message, isError = false) {
