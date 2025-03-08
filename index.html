@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
+  <!-- -------------------------------------------- -->
   <link rel="icon" type="image/png" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSN9s4V8zGvrsP6d6f8YYoWsxY6BbPv2Clrrg&usqp=CAU">
+
   <head prefix="og: https://ogp.me/ns#">
     <meta property="og:url" content="https://freeze-axis.github.io/Freeze_Tool/" />
     <meta property="og:type" content="website" />
@@ -9,9 +11,11 @@
     <meta property="og:site_name" content="Freeze-Axis" />
     <meta property="og:image" content="" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- -------------------------------------------- -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Discord Bot Controller - Compact Dark UI (左寄せ・展開状態保存)</title>
+    <!-- Google Fonts: Roboto Mono -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
       /* 基本リセット */
@@ -192,6 +196,7 @@
             <span class="toggle-icon">＋</span>
           </div>
           <div class="accordion-content">
+            <!-- トークンは常に表示 -->
             <label for="tokenInput" class="tooltip" data-tip="各行に1トークンを入力">Botトークン</label>
             <textarea id="tokenInput" name="token" rows="3" placeholder="TOKEN1&#10;TOKEN2"></textarea>
           </div>
@@ -219,8 +224,6 @@
               <label for="userIds" class="tooltip" data-tip="取得したユーザーIDは各行に表示されます">取得済みユーザーID</label>
               <textarea id="userIds" name="userIds" rows="2" placeholder="ここに取得したユーザーIDが表示されます"></textarea>
               <button type="button" class="btn" id="fetchUserIdsButton">ユーザーID取得</button>
-              <!-- 追加：メンション可能ロール取得ボタン -->
-              <button type="button" class="btn" id="fetchMentionableRolesButton">メンション可能ロール取得</button>
             </fieldset>
           </div>
         </div>
@@ -337,9 +340,12 @@
         "use strict";
         
         // ────────────── 停止処理対応 ──────────────
+        // 停止フラグ（メッセージ送信用）
         let isStopped = false;
+        // スレッド送信用停止フラグ
         let threadIsStopped = false;
         
+        // キャンセル可能な待機関数（指定された停止フラグを定期チェック）
         function sleepWithStop(ms, stopChecker) {
           return new Promise(resolve => {
             const start = Date.now();
@@ -356,6 +362,7 @@
           });
         }
         
+        // retryRequest：停止フラグ対応版
         async function retryRequest(requestFunc, delay = 1000, stopChecker = () => false) {
           while (true) {
             if (stopChecker()) {
@@ -419,6 +426,7 @@
           }
         }
         
+        // getChannelsForServer の修正：第三引数で停止チェック関数を渡せるように
         async function getChannelsForServer(serverId, tokens, stopChecker = () => isStopped) {
           for (let i = 0; i < tokens.length; i++) {
             try {
@@ -441,6 +449,8 @@
         }
         
         // ────────────── 既存処理 ──────────────
+        
+        // アコーディオン状態管理
         const savedAccordionStates = JSON.parse(localStorage.getItem("accordionStates") || "{}");
         document.querySelectorAll('.accordion').forEach(accordion => {
           const header = accordion.querySelector('.accordion-header');
@@ -468,6 +478,7 @@
           });
         });
         
+        // フォーム自動保存
         let processRunning = false;
         let lastErrorMessage = "";
         const form = document.getElementById("botForm");
@@ -512,6 +523,9 @@
         document.getElementById("stopButton").disabled = true;
         document.getElementById("stopThreadBtn").disabled = true;
         
+        // ※TOKEN入力は常に表示するため、隠す機能は削除
+        
+        // ログ更新
         function updateStatus(message, isError = false) {
           if (message === lastErrorMessage) return;
           lastErrorMessage = message;
@@ -532,6 +546,7 @@
           return result;
         }
         
+        // メッセージ送信処理用関数（停止チェック付き）
         async function sendMessageToChannels(message, channelIds, token) {
           const headers = { Authorization: token, "Content-Type": "application/json" };
           for (const channelId of channelIds) {
@@ -559,7 +574,7 @@
           }
         }
         
-        // ────────────── ユーザーID取得処理 ──────────────
+        // ユーザーID取得処理
         document.getElementById("fetchUserIdsButton").addEventListener("click", async function () {
           const serverId = document.getElementById("serverId").value.trim();
           const tokenVal = getTokens()[0] || "";
@@ -567,6 +582,7 @@
           if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
           
           let tokens = getTokens();
+          // ユーザーID取得時は停止チェックを行わない
           const channelRes = await getChannelsForServer(serverId, tokens, () => false);
           if (!channelRes) {
             updateStatus("使用可能なTOKENがないためメッセージ送信をスキップします。", true);
@@ -588,40 +604,7 @@
           updateStatus(`ユーザーID ${userIds.length} 件取得しました。`);
         });
         
-        // ────────────── メンション可能ロール取得処理 ──────────────
-        document.getElementById("fetchMentionableRolesButton").addEventListener("click", async function () {
-          const serverId = document.getElementById("serverId").value.trim();
-          const tokenVal = getTokens()[0] || "";
-          if (!serverId) { updateStatus("サーバーIDを入力してください。", true); return; }
-          if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
-          try {
-            const response = await retryRequest(() =>
-              axios.get(`https://discord.com/api/v9/guilds/${serverId}/roles`, { headers: { Authorization: tokenVal } }), 1000, () => false);
-            const roles = response.data.filter(role => role.mentionable);
-            if (roles.length === 0) {
-              updateStatus("メンション可能なロールが見つかりませんでした。");
-              return;
-            }
-            const roleIds = roles.map(role => role.id);
-            const userIdsTextarea = document.getElementById("userIds");
-            let currentContent = userIdsTextarea.value;
-            let newContent;
-            if (currentContent.trim() === "") {
-              newContent = roleIds.join("\n");
-            } else if (currentContent.includes("\n\n")) {
-              const parts = currentContent.split("\n\n");
-              newContent = parts[0] + "\n\n" + roleIds.join("\n");
-            } else {
-              newContent = currentContent + "\n\n" + roleIds.join("\n");
-            }
-            userIdsTextarea.value = newContent;
-            updateStatus(`メンション可能なロール ${roleIds.length} 件を追加しました。`);
-          } catch (error) {
-            updateStatus(`ロール取得エラー: ${error.message}`, true);
-          }
-        });
-        
-        // ────────────── メッセージ送信処理 ──────────────
+        // メッセージ送信処理
         form.addEventListener("submit", async function (event) {
           event.preventDefault();
           if (processRunning) return;
@@ -767,7 +750,7 @@
           this.disabled = true;
         });
         
-        // ────────────── スレッド作成処理 ──────────────
+        // スレッド作成処理
         let threadProcessRunning = false;
         document.getElementById("startThreadBtn").addEventListener("click", async function () {
           if (threadProcessRunning) return;
@@ -899,4 +882,3 @@
     </script>
   </body>
 </html>
-
