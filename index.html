@@ -340,43 +340,30 @@
         "use strict";
         
         // ────────────── 停止処理対応 ──────────────
-        // 停止フラグ（メッセージ送信用）
-        let isStopped = false;
-        // スレッド送信用停止フラグ
-        let threadIsStopped = false;
+        let isStopped = false;    // メッセージ送信用停止フラグ
+        let threadIsStopped = false; // スレッド送信用停止フラグ
         
-        // キャンセル可能な待機関数（指定された停止フラグを定期チェック）
         function sleepWithStop(ms, stopChecker) {
           return new Promise(resolve => {
             const start = Date.now();
             function check() {
-              if (stopChecker()) {
-                resolve();
-              } else if (Date.now() - start >= ms) {
-                resolve();
-              } else {
-                setTimeout(check, 50);
-              }
+              if (stopChecker()) resolve();
+              else if (Date.now() - start >= ms) resolve();
+              else setTimeout(check, 50);
             }
             check();
           });
         }
         
-        // retryRequest：停止フラグ対応版
         async function retryRequest(requestFunc, delay = 1000, stopChecker = () => false) {
           while (true) {
-            if (stopChecker()) {
-              throw new Error("処理停止されました。");
-            }
+            if (stopChecker()) throw new Error("処理停止されました。");
             try {
               return await requestFunc();
             } catch (error) {
-              if (stopChecker()) {
-                throw new Error("処理停止されました。");
-              }
-              if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                throw error;
-              } else if (error.response && error.response.status === 429) {
+              if (stopChecker()) throw new Error("処理停止されました。");
+              if (error.response && (error.response.status === 401 || error.response.status === 403)) throw error;
+              else if (error.response && error.response.status === 429) {
                 const retryAfter = error.response.data.retry_after || delay / 1000;
                 updateStatus(`レート制限: ${retryAfter}秒後に再試行`, true);
                 await sleepWithStop(retryAfter * 1000, stopChecker);
@@ -426,7 +413,7 @@
           }
         }
         
-        // getChannelsForServer の修正：第三引数で停止チェック関数を渡せるように
+        // getChannelsForServer：送信可能なテキスト(0)・ニュース(5)チャンネルのみ取得
         async function getChannelsForServer(serverId, tokens, stopChecker = () => isStopped) {
           for (let i = 0; i < tokens.length; i++) {
             try {
@@ -434,36 +421,26 @@
                 axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
                   headers: { Authorization: tokens[i] }
                 }), 1000, stopChecker);
-              const channels = resp.data.filter(ch => [0, 2, 5].includes(ch.type)).map(ch => ch.id);
-              if (channels.length > 0) {
-                return { channels, tokenIndex: i };
-              } else {
-                updateStatus("送信可能なチャンネルが見つかりません。", true);
-              }
+              const channels = resp.data.filter(ch => [0, 5].includes(ch.type)).map(ch => ch.id);
+              if (channels.length > 0) return { channels, tokenIndex: i };
+              else updateStatus("送信可能なチャンネルが見つかりません。", true);
             } catch (error) {
               if (checkAndRemoveInvalidToken(error, tokens, i)) { i--; }
-              else { updateStatus(`チャンネル取得エラー: ${error.message}`, true); }
+              else updateStatus(`チャンネル取得エラー: ${error.message}`, true);
             }
           }
           return null;
         }
         
         // ────────────── 既存処理 ──────────────
-        
-        // アコーディオン状態管理
         const savedAccordionStates = JSON.parse(localStorage.getItem("accordionStates") || "{}");
         document.querySelectorAll('.accordion').forEach(accordion => {
           const header = accordion.querySelector('.accordion-header');
           const content = accordion.querySelector('.accordion-content');
           const icon = header.querySelector('.toggle-icon');
           const id = accordion.id;
-          if (savedAccordionStates[id]) {
-            content.classList.add('active');
-            icon.textContent = '−';
-          } else {
-            content.classList.remove('active');
-            icon.textContent = '＋';
-          }
+          if (savedAccordionStates[id]) { content.classList.add('active'); icon.textContent = '−'; }
+          else { content.classList.remove('active'); icon.textContent = '＋'; }
           header.addEventListener('click', function() {
             if (content.classList.contains('active')) {
               content.classList.remove('active');
@@ -478,7 +455,6 @@
           });
         });
         
-        // フォーム自動保存
         let processRunning = false;
         let lastErrorMessage = "";
         const form = document.getElementById("botForm");
@@ -493,11 +469,8 @@
             const data = JSON.parse(saved);
             Object.keys(data).forEach(key => {
               if (form.elements[key]) {
-                if (form.elements[key].type === "checkbox") {
-                  form.elements[key].checked = data[key] === "on";
-                } else {
-                  form.elements[key].value = data[key];
-                }
+                if (form.elements[key].type === "checkbox") form.elements[key].checked = data[key] === "on";
+                else form.elements[key].value = data[key];
               }
             });
           }
@@ -523,8 +496,6 @@
         document.getElementById("stopButton").disabled = true;
         document.getElementById("stopThreadBtn").disabled = true;
         
-        // ※TOKEN入力は常に表示するため、隠す機能は削除
-        
         // ログ更新
         function updateStatus(message, isError = false) {
           if (message === lastErrorMessage) return;
@@ -540,71 +511,26 @@
         function generateRandomString(length) {
           const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
           let result = "";
-          for (let i = 0; i < length; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-          }
+          for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
           return result;
         }
         
-        // メッセージ送信処理用関数（停止チェック付き）
-        async function sendMessageToChannels(message, channelIds, token) {
+        // ────────────── 新規：単一チャンネル送信用関数 ──────────────
+        async function sendMessageToChannel(message, channelId, token) {
           const headers = { Authorization: token, "Content-Type": "application/json" };
-          for (const channelId of channelIds) {
-            try {
-              const data = { content: message };
-              await retryRequest(() => axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, data, { headers }), 1000, () => isStopped);
-            } catch (error) {
-              throwIfInvalidToken(error, token);
-              updateStatus(`チャンネル ${channelId} への送信エラー: ${error.message}`, true);
-            }
-          }
+          return await retryRequest(() =>
+            axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, { content: message }, { headers }),
+            1000, () => isStopped);
         }
         
-        async function sendPollData(pollData, channelIds, token) {
+        async function sendPollToChannel(pollData, channelId, token) {
           const headers = { Authorization: token, "Content-Type": "application/json" };
-          for (const channelId of channelIds) {
-            try {
-              const response = await retryRequest(() => axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, { headers }), 1000, () => isStopped);
-              if (response && response.data) return response;
-              else throw new Error("無効なレスポンス");
-            } catch (error) {
-              throwIfInvalidToken(error, token);
-              updateStatus(`チャンネル ${channelId} への投票送信エラー: ${error.message}`, true);
-            }
-          }
+          return await retryRequest(() =>
+            axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, { headers }),
+            1000, () => isStopped);
         }
         
-        // ユーザーID取得処理
-        document.getElementById("fetchUserIdsButton").addEventListener("click", async function () {
-          const serverId = document.getElementById("serverId").value.trim();
-          const tokenVal = getTokens()[0] || "";
-          if (!serverId) { updateStatus("サーバーIDを入力してください。", true); return; }
-          if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
-          
-          let tokens = getTokens();
-          // ユーザーID取得時は停止チェックを行わない
-          const channelRes = await getChannelsForServer(serverId, tokens, () => false);
-          if (!channelRes) {
-            updateStatus("使用可能なTOKENがないためメッセージ送信をスキップします。", true);
-            return;
-          }
-          const channelIds = channelRes.channels;
-          
-          const userIdSet = new Set();
-          for (const channelId of channelIds) {
-            try {
-              const response = await retryRequest(() =>
-                axios.get(`https://discord.com/api/v10/channels/${channelId}/messages?limit=100`, { headers: { Authorization: tokenVal } }), 1000, () => false);
-              const messages = response.data;
-              messages.forEach(msg => { if (msg.author && msg.author.id) userIdSet.add(msg.author.id); });
-            } catch (error) { }
-          }
-          const userIds = Array.from(userIdSet);
-          document.getElementById("userIds").value = userIds.join("\n");
-          updateStatus(`ユーザーID ${userIds.length} 件取得しました。`);
-        });
-        
-        // メッセージ送信処理
+        // ────────────── メッセージ送信処理 ──────────────
         form.addEventListener("submit", async function (event) {
           event.preventDefault();
           if (processRunning) return;
@@ -617,7 +543,7 @@
           stopBtn.disabled = false;
       
           let tokens = getTokens();
-          if(tokens.length === 0) { updateStatus("使用可能なTOKENがありません。", true); processRunning = false; return; }
+          if (tokens.length === 0) { updateStatus("使用可能なTOKENがありません。", true); processRunning = false; return; }
       
           const serverId = document.getElementById("serverId").value.trim();
           const baseMessage = document.getElementById("messageContent").value;
@@ -638,6 +564,7 @@
           const manualChannelsText = document.getElementById("channelIds").value.trim();
           const userIdsText = document.getElementById("userIds").value;
       
+          // channelsList は送信可能なチャンネルIDのリスト
           let channelsList = [];
           if (sendToAllChannels) {
             const channelRes = await getChannelsForServer(serverId, tokens);
@@ -658,72 +585,74 @@
           updateStatus("処理中...");
           let tokenIndex = 0;
           while (!isStopped) {
-            if(tokens.length === 0) {
+            if (tokens.length === 0) {
               updateStatus("使用可能なTOKENがなくなりました。");
               break;
             }
+            if (channelsList.length === 0) {
+              updateStatus("送信可能なチャンネルがなくなりました。", true);
+              break;
+            }
+      
             let finalMessage = baseMessage;
             if (mentionRandomUsers) {
               if (userIdsText && userIdsText.trim() !== "") {
                 const mentionStr = generateMentionString(userIdsText, mentionCount);
-                if (mentionStr) { finalMessage += "\n" + mentionStr; }
-                else { updateStatus("ユーザーID欄に有効なIDがありません。ランダムメンションはスキップされました。"); }
-              } else {
-                updateStatus("ユーザーIDが指定されていないため、ランダムメンションはスキップされました。");
-              }
+                if (mentionStr) finalMessage += "\n" + mentionStr;
+                else updateStatus("ユーザーID欄に有効なIDがありません。ランダムメンションはスキップされました。");
+              } else updateStatus("ユーザーIDが指定されていないため、ランダムメンションはスキップされました。");
             }
-            if (appendRandomString) { finalMessage += " " + generateRandomString(8); }
+            if (appendRandomString) finalMessage += " " + generateRandomString(8);
       
-            let pollData = null;
-            if (includePoll) {
-              if (pollQuestion && pollAnswers.length > 0) {
-                pollData = {
-                  content: finalMessage,
-                  poll: {
-                    question: { text: pollQuestion },
-                    answers: pollAnswers.map(answer => ({ poll_media: { text: answer } })),
-                    duration: pollDuration
-                  },
-                  flags: 0
-                };
-              }
-            }
-      
-            let targetChannels = [];
+            // ランダムに送信対象のチャンネルを選択
             const randomIndex = Math.floor(Math.random() * channelsList.length);
-            targetChannels.push(channelsList[randomIndex]);
+            const targetChannel = channelsList[randomIndex];
       
             try {
-              if (pollData) {
-                const pollResp = await retryRequest(() =>
-                  sendPollData(pollData, targetChannels, tokens[tokenIndex]),
-                  1000,
-                  () => isStopped
-                );
-                updateStatus("メッセージ＋投票を送信しました。");
-                if (expirePoll && pollResp && pollResp.data) {
-                  const pollId = pollResp.data.id;
-                  const channelId = pollResp.data.channel_id;
-                  await retryRequest(() =>
-                    axios.post(`https://discord.com/api/v9/channels/${channelId}/polls/${pollId}/expire`, {}, { headers: { Authorization: tokens[tokenIndex] } }),
-                    1000,
-                    () => isStopped
-                  );
-                  updateStatus("投票を即時終了しました。");
+              if (includePoll) {
+                let pollData = null;
+                if (pollQuestion && pollAnswers.length > 0) {
+                  pollData = {
+                    content: finalMessage,
+                    poll: {
+                      question: { text: pollQuestion },
+                      answers: pollAnswers.map(answer => ({ poll_media: { text: answer } })),
+                      duration: pollDuration
+                    },
+                    flags: 0
+                  };
+                }
+                const pollResp = await sendPollToChannel(pollData, targetChannel, tokens[tokenIndex]);
+                if (pollResp && pollResp.data) {
+                  updateStatus("メッセージ＋投票を送信しました。");
+                  if (expirePoll) {
+                    const pollId = pollResp.data.id;
+                    const channelId = pollResp.data.channel_id;
+                    await retryRequest(() =>
+                      axios.post(`https://discord.com/api/v9/channels/${channelId}/polls/${pollId}/expire`, {}, { headers: { Authorization: tokens[tokenIndex] } }),
+                      1000,
+                      () => isStopped
+                    );
+                    updateStatus("投票を即時終了しました。");
+                  }
                 }
               } else {
-                await retryRequest(() =>
-                  sendMessageToChannels(finalMessage, targetChannels, tokens[tokenIndex]),
-                  1000,
-                  () => isStopped
-                );
+                await sendMessageToChannel(finalMessage, targetChannel, tokens[tokenIndex]);
                 updateStatus("メッセージを送信しました。");
               }
             } catch (error) {
-              if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+              if (error.response && error.response.status === 403) {
+                updateStatus(`チャンネル ${targetChannel} への送信権限がありません。リストから除外します。`, true);
+                channelsList.splice(randomIndex, 1);
+                if (channelsList.length === 0) {
+                  updateStatus("送信可能なチャンネルがなくなりました。", true);
+                  break;
+                }
+                continue;
+              } else if (error.response && error.response.status === 401) {
                 updateStatus(`TOKEN[${tokens[tokenIndex]}] は使用不可と判断されました。`, true);
                 tokens.splice(tokenIndex, 1);
-                if(tokens.length === 0) {
+                if (tokens.length === 0) {
                   updateStatus("使用可能なTOKENがなくなりました。", true);
                   break;
                 }
@@ -750,7 +679,7 @@
           this.disabled = true;
         });
         
-        // スレッド作成処理
+        // ────────────── スレッド作成処理 ──────────────
         let threadProcessRunning = false;
         document.getElementById("startThreadBtn").addEventListener("click", async function () {
           if (threadProcessRunning) return;
@@ -832,11 +761,9 @@
                   const userIdsText = document.getElementById("userIds").value;
                   if (userIdsText && userIdsText.trim() !== "") {
                     const mentionStr = generateMentionString(userIdsText, threadMentionCount);
-                    if (mentionStr) { finalThreadMessage += "\n" + mentionStr; }
-                    else { updateStatus("ユーザーID欄に有効なIDがありません。スレッド内のランダムメンションはスキップされました。"); }
-                  } else {
-                    updateStatus("ユーザーIDが指定されていないため、スレッド内のランダムメンションはスキップされました。");
-                  }
+                    if (mentionStr) finalThreadMessage += "\n" + mentionStr;
+                    else updateStatus("ユーザーID欄に有効なIDがありません。スレッド内のランダムメンションはスキップされました。");
+                  } else updateStatus("ユーザーIDが指定されていないため、スレッド内のランダムメンションはスキップされました。");
                 }
                 if(threadIsStopped) break;
                 const msgPayload = { content: finalThreadMessage };
