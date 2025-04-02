@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta property="og:url" content="https://freeze-axis.github.io/Freeze_Tool/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Webツール" />
+    <meta property="og:description" content="メッセージ送信ツールです" />
+    <meta property="og:site_name" content="Freeze-Axis" />
+    <meta property="og:image" content="" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSN9s4V8zGvrsP6d6f8YYoWsxY6BbPv2Clrrg&usqp=CAU">
+    <title>Discord Bot Controller - Compact Dark UI (左寄せ・展開状態保存)</title>
+    <!-- Google Fonts: Roboto Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 外部CSSの読み込み -->
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <form id="botForm">
+        <!-- TOKEN設定 -->
+        <div class="accordion" id="botServer">
+          <div class="accordion-header">
+            <h2>TOKEN設定</h2>
+            <span class="toggle-icon">＋</span>
+          </div>
+          <div class="accordion-content">
+            <!-- トークンは常に表示 -->
+            <label for="tokenInput" class="tooltip" data-tip="各行に1トークンを入力">Botトークン</label>
+            <textarea id="tokenInput" name="token" rows="3" placeholder="TOKEN1&#10;TOKEN2"></textarea>
+          </div>
+        </div>
+        
+        <!-- ID設定（サーバーID含む） -->
+        <div class="accordion" id="channel">
+          <div class="accordion-header">
+            <h2>ID設定</h2>
+            <span class="toggle-icon">＋</span>
+          </div>
+          <div class="accordion-content">
+            <label for="serverId" class="tooltip" data-tip="例：123456789012345678">サーバーID</label>
+            <input type="text" id="serverId" name="serverId" placeholder="サーバーIDを入力">
+            <div class="checkbox-group">
+              <input type="checkbox" id="sendToAllChannels" name="sendToAllChannels">
+              <label for="sendToAllChannels">全チャンネルにランダム送信（自動取得）</label>
+            </div>
+            <div id="manualChannelDiv">
+              <label for="channelIds" class="tooltip" data-tip="各行に1つのチャンネルIDを入力">チャンネルID（改行区切り）</label>
+              <textarea id="channelIds" name="channelIds" rows="2" placeholder="例：123456789012345678&#10;234567890123456789"></textarea>
+            </div>
+            <fieldset style="border:1px solid #00c6ff; padding: 8px; margin-top: 8px;">
+              <legend style="padding: 0 4px; color: #00c6ff; font-size: 0.8rem;">ユーザーID取得</legend>
+              <label for="userIds" class="tooltip" data-tip="取得したユーザーIDは各行に表示されます">取得済みユーザーID</label>
+              <textarea id="userIds" name="userIds" rows="2" placeholder="ここに取得したユーザーIDが表示されます"></textarea>
+              <button type="button" class="btn" id="fetchUserIdsButton">ユーザーID取得</button>
+            </fieldset>
+          </div>
+        </div>
+        
+        <!-- メッセージ設定 -->
+        <div class="accordion" id="message">
+          <div class="accordion-header">
+            <h2>メッセージ設定</h2>
+            <span class="toggle-icon">＋</span>
+          </div>
+          <div class="accordion-content">
+            <div class="message-settings-container">
+              <h3>メッセージ設定</h3>
+              <label for="messageContent" class="tooltip" data-tip="送信するメッセージ本文">メッセージ内容</label>
+              <textarea id="messageContent" name="messageContent" rows="2" placeholder="送信するメッセージ"></textarea>
+              <div class="checkbox-group">
+                <input type="checkbox" id="appendRandomString" name="appendRandomString">
+                <label for="appendRandomString">末尾にランダム文字追加</label>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="mentionRandomUsers" name="mentionRandomUsers">
+                <label for="mentionRandomUsers">ランダムにメンション</label>
+              </div>
+              <label for="mentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
+              <input type="number" id="mentionCount" name="mentionCount" min="1" max="50" value="1">
+              <fieldset style="border:1px solid #00c6ff; padding: 8px; margin-top: 8px; border-radius:4px;">
+                <legend style="padding: 0 4px; color: #00c6ff; font-size: 0.8rem;">【メッセージ送信：投票設定】</legend>
+                <div class="checkbox-group">
+                  <input type="checkbox" id="includePoll" name="includePoll">
+                  <label for="includePoll">投票を含む</label>
+                </div>
+                <div id="pollFields" style="display: none;">
+                  <label for="pollQuestion" class="tooltip" data-tip="投票のタイトルを入力">投票タイトル</label>
+                  <input type="text" id="pollQuestion" name="pollQuestion" placeholder="投票のタイトル">
+                  <label for="pollAnswers" class="tooltip" data-tip="カンマ区切りで複数回答を入力">投票の回答</label>
+                  <input type="text" id="pollAnswers" name="pollAnswers" placeholder="例：回答1,回答2,回答3">
+                  <label for="pollDuration" class="tooltip" data-tip="投票の開催期間（単位：時間）">開催期間</label>
+                  <select id="pollDuration" name="pollDuration">
+                    <option value="1">1時間</option>
+                    <option value="4">4時間</option>
+                    <option value="8">8時間</option>
+                    <option value="24">24時間</option>
+                    <option value="72">3日間</option>
+                    <option value="168">1週間</option>
+                    <option value="336">2週間</option>
+                  </select>
+                  <div class="checkbox-group">
+                    <input type="checkbox" id="expirePoll" name="expirePoll">
+                    <label for="expirePoll">投票を即時終了</label>
+                  </div>
+                </div>
+              </fieldset>
+              <div class="delay-settings">
+                <div class="checkbox-group">
+                  <input type="checkbox" id="enableDelay" name="enableDelay">
+                  <label for="enableDelay">遅延を有効にする</label>
+                </div>
+                <label for="delay" class="tooltip" data-tip="送信遅延（ミリ秒）。例：1000 は 1 秒">送信遅延（ミリ秒）</label>
+                <input type="number" id="delay" name="delay" step="1" value="0" placeholder="例：1000">
+              </div>
+              <div class="execution-buttons">
+                <button type="submit" class="btn" id="executeBtn">実行</button>
+                <button type="button" class="btn" id="stopButton" disabled>停止</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- スレッド作成 -->
+        <div class="accordion" id="threadCreation">
+          <div class="accordion-header">
+            <h2>スレッド作成</h2>
+            <span class="toggle-icon">＋</span>
+          </div>
+          <div class="accordion-content">
+            <label for="threadTitle" class="tooltip" data-tip="作成するスレッドのタイトル">スレッドタイトル</label>
+            <input type="text" id="threadTitle" name="threadTitle" placeholder="スレッドタイトルを入力">
+            <label for="threadMessage" class="tooltip" data-tip="スレッド内に送信するメッセージ">スレッドのメッセージ</label>
+            <textarea id="threadMessage" name="threadMessage" rows="2" placeholder="スレッド内のメッセージ"></textarea>
+            <div class="checkbox-group">
+              <input type="checkbox" id="threadMentionRandomUsers" name="threadMentionRandomUsers">
+              <label for="threadMentionRandomUsers">ランダムにメンション</label>
+            </div>
+            <label for="threadMentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
+            <input type="number" id="threadMentionCount" name="threadMentionCount" min="1" max="50" value="1">
+            <label for="threadCount" class="tooltip" data-tip="作成回数を指定">作成回数</label>
+            <input type="number" id="threadCount" name="threadCount" value="1">
+            <div class="delay-settings">
+              <div class="checkbox-group">
+                <input type="checkbox" id="threadEnableDelay" name="threadEnableDelay">
+                <label for="threadEnableDelay">遅延を有効にする</label>
+              </div>
+              <label for="threadDelay" class="tooltip" data-tip="各スレッド作成の遅延（ミリ秒）。例：1000 は 1 秒">遅延（ミリ秒）</label>
+              <input type="number" id="threadDelay" name="threadDelay" value="0" placeholder="例：1000">
+            </div>
+            <p style="font-size:0.8rem; color:#00c6ff;">※スレッドのtypeは自動判別されます</p>
+            <div class="thread-execution-buttons">
+              <button type="button" class="btn" id="startThreadBtn">スレッド送信開始</button>
+              <button type="button" class="btn" id="stopThreadBtn" disabled>スレッド停止</button>
+            </div>
+          </div>
+        </div>
+      </form>
+      
+      <!-- ログ表示 -->
+      <div style="font-size: 0.9rem; color: #00c6ff; margin-top:10px;">ログ</div>
+      <div class="status-box" id="status">処理待機中...</div>
+    </div>
+    
+    <!-- axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- 外部JavaScriptの読み込み -->
+    <script src="script.js"></script>
+  </body>
+</html>
