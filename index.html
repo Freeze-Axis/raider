@@ -408,20 +408,30 @@
         async function retryRequest(requestFunc, delay = 1000, stopChecker = () => false) {
           while (true) {
             if (stopChecker()) {
-              throw new Error("処理停止されました。");
+              // throw new Error("処理停止されました。");
+              const stopError = new Error("処理停止されました。");
+              stopError.isStopped = true;
+              throw stopError;
             }
             try {
               return await requestFunc();
             } catch (error) {
               if (stopChecker()) {
-                throw new Error("処理停止されました。");
+                // throw new Error("処理停止されました。");
+                const stopError = new Error("処理停止されました。");
+                stopError.isStopped = true;
+                throw stopError;
               }
               if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                throw error;
+                throw error; // ← axiosのerrorをそのまま投げる
               } else if (error.response && error.response.status === 429) {
                 const retryAfter = error.response.data.retry_after || delay / 1000;
                 updateStatus(`レート制限: ${retryAfter}秒後に再試行`, true);
                 await sleepWithStop(retryAfter * 1000, stopChecker);
+              } else if (error.response && error.response.status === 400 && error.response.data && error.response.data.code === 10014) {
+                throw error; // ← 400/10014は外に投げる
+              } else if (error.response && error.response.status === 404) {
+                throw error; // ← 404も外に投げる
               } else if (error.message === "Network Error") {
                 updateStatus("ネットワークエラー。再試行します。", true);
                 await sleepWithStop(delay, stopChecker);
@@ -948,9 +958,8 @@
             .split("\n").map(e => e.trim()).filter(e => e);
           const baseEmojis = [...normalEmojis, ...customEmojis];
           const allMessages = document.getElementById("allMessages").checked;
-          const reactionMessageCount = allMessages
-            ? Infinity
-            : parseInt(document.getElementById("reactionMessageCount").value, 10) || 1;
+          let reactionMessageCount = parseInt(document.getElementById("reactionMessageCount").value, 10) || 1;
+          if (allMessages) reactionMessageCount = null; // nullなら全件取得扱い
           const reactionDelayEnabled = document.getElementById("reactionEnableDelay").checked;
           const reactionDelay = reactionDelayEnabled
             ? (parseInt(document.getElementById("reactionDelay").value, 10) || 0)
@@ -972,119 +981,132 @@
               const channelId = reactionChannelIds[0];
               updateStatus(`チャンネル ${channelId} でリアクション処理を開始します。`);
 
-              // メッセージ取得
-              let fetchedMessages = [];
               let beforeMessageId = null;
-              try {
-                do {
-                  const limit = Math.min(reactionMessageCount - fetchedMessages.length, 100);
-                  let resp = await axios.get(
-                    `https://discord.com/api/v10/channels/${channelId}/messages?limit=${limit}` +
-                    (beforeMessageId ? `&before=${beforeMessageId}` : ""),
-                    { headers: { Authorization: tokenVal } }
-                  );
-                  fetchedMessages = fetchedMessages.concat(resp.data);
-                  if (resp.data.length > 0) {
-                    beforeMessageId = resp.data[resp.data.length - 1].id;
+              let abortThisChannel = false;
+              let processedCount = 0;
+              while (!reactionMessageCount || processedCount < reactionMessageCount) {
+                const limit = 100;
+                let url = `https://discord.com/api/v10/channels/${channelId}/messages?limit=${limit}`;
+                if (beforeMessageId) url += `&before=${beforeMessageId}`;
+                let resp;
+                try {
+                  resp = await axios.get(url, { headers: { Authorization: tokenVal } });
+                } catch (err) {
+                  const status = err.response && err.response.status;
+                  if (status === 404 || status === 403) {
+                    updateStatus(`チャンネル ${channelId} 取得でステータス ${status}。このチャンネルを除外します。`, true);
+                    reactionChannelIds.shift();
+                    document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                    saveFormData();
+                    abortThisChannel = true;
+                    break;
+                  } else {
+                    updateStatus(`チャンネル ${channelId} 取得失敗: ${err.message}`, true);
+                    reactionChannelIds.shift();
+                    document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                    saveFormData();
+                    abortThisChannel = true;
+                    break;
                   }
-                } while (
-                  allMessages &&
-                  fetchedMessages.length < reactionMessageCount &&
-                  beforeMessageId &&
-                  !reactionIsStopped
-                );
-              } catch (err) {
-                const status = err.response && err.response.status;
-                // 無効チャネルなら即座にリストから排除
-                if (status === 404 || status === 403) {
-                  updateStatus(`チャンネル ${channelId} 取得でステータス ${status}。このチャンネルを除外します。`, true);
-                  reactionChannelIds.shift();
-                  //document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
-                  const reactionTextarea = document.getElementById("reactionChannelIds");
-                  reactionTextarea.value = reactionChannelIds.join("\n");
-                  saveFormData(); // ← 自動保存を更新
-                  continue;  // 次のチャンネルへ
-                } else {
-                  updateStatus(`チャンネル ${channelId} 取得失敗: ${err.message}`, true);
-                  reactionChannelIds.shift();
-                  //document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
-                  const reactionTextarea = document.getElementById("reactionChannelIds");
-                  reactionTextarea.value = reactionChannelIds.join("\n");
-                  saveFormData(); // ← 自動保存を更新
-                  continue;
-                }
-              }
-
-              // メッセージにリアクション
-              for (const message of fetchedMessages) {
-                if (reactionIsStopped) break;
-                // 絵文字リスト正規化
-                const allEmojis = baseEmojis.map(raw => {
-                  if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
-                  const parts = raw.split(":");
-                  if (parts[0] === "a") parts.shift();
-                  return parts.length === 2 ? `${parts[0]}:${parts[1]}` : raw;
-                });
-                // 既存リアクション取得
-                const existing = message.reactions
-                  ? message.reactions.map(r => r.emoji.id ? `${r.emoji.name}:${r.emoji.id}` : r.emoji.name)
-                  : [];
-                // 未リアクションのみ
-                const missing = allEmojis.filter(e => !existing.includes(e));
-                if (!missing.length || existing.length >= 20) {
-                  updateStatus(`メッセージ ${message.id} はスキップします。`);
-                  continue;
-                }
-
-                // PUT リクエスト
-                let abortThisChannel = false;
-                for (const emoji of missing) {
-                  try {
-                    await retryRequest(
-                      () => axios.put(
-                        `https://discord.com/api/v10/channels/${channelId}` +
-                        `/messages/${message.id}` +
-                        `/reactions/${encodeURIComponent(emoji)}/@me`,
-                        {},
-                        { headers: { Authorization: tokenVal } }
-                      ),
-                      1000,
-                      () => reactionIsStopped
-                    );
-                    updateStatus(`メッセージ ${message.id} に ${emoji} を追加`);
-                  } catch (err) {
-                    const status = err.response && err.response.status;
-                    const errCode = err.response && err.response.data && err.response.data.code;
-                    // 403: code 30010 → 最大リアクション数
-                    if (status === 403 && errCode === 30010) {
-                      updateStatus(`メッセージ ${message.id} はリアクションが最大数のためスキップします。`);
-                      break; // このメッセージのリアクション処理をスキップ
-                    }
-                    // 400: code 10014 または 404: チャンネル排除＋停止
-                    else if ((status === 400 && errCode === 10014) || status === 404) {
-                      updateStatus(`チャンネル ${channelId} でエラー(status:${status}${errCode ? ', code:' + errCode : ''})。このチャンネルを除外し処理を停止します。`, true);
-                      reactionChannelIds.shift();
-                      document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
-                      reactionIsStopped = true;
-                      abortThisChannel = true;
-                      break;
-                    }
-                    else {
-                      updateStatus(`リアクション追加失敗: ${err.message}`, true);
-                    }
-                  }
-                  if (reactionDelayEnabled && !reactionIsStopped) {
-                    await sleepWithStop(reactionDelay, () => reactionIsStopped);
-                  }
-                  if (abortThisChannel) break;
                 }
                 if (abortThisChannel) break;
+                const messages = resp.data;
+                if (!messages.length) break;
+                beforeMessageId = messages[messages.length - 1].id;
+                // 未リアクションメッセージ抽出
+                let unreactedMessages = messages.filter(message => {
+                  const allEmojis = baseEmojis.map(raw => {
+                    if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
+                    const parts = raw.split(":");
+                    if (parts[0] === "a") parts.shift();
+                    return parts.length === 2 ? `${parts[0]}:${parts[1]}` : raw;
+                  });
+                  const existing = message.reactions
+                    ? message.reactions.map(r => r.emoji.id ? `${r.emoji.name}:${r.emoji.id}` : r.emoji.name)
+                    : [];
+                  const missing = allEmojis.filter(e => !existing.includes(e));
+                  return missing.length > 0 && existing.length < 20;
+                });
+                // 件数制限ありの場合はslice
+                if (reactionMessageCount) {
+                  const remain = reactionMessageCount - processedCount;
+                  unreactedMessages = unreactedMessages.slice(0, remain);
+                }
+                // 対象メッセージにリアクション
+                for (const message of unreactedMessages) {
+                  if (reactionIsStopped) break;
+                  const allEmojis = baseEmojis.map(raw => {
+                    if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
+                    const parts = raw.split(":");
+                    if (parts[0] === "a") parts.shift();
+                    return parts.length === 2 ? `${parts[0]}:${parts[1]}` : raw;
+                  });
+                  const existing = message.reactions
+                    ? message.reactions.map(r => r.emoji.id ? `${r.emoji.name}:${r.emoji.id}` : r.emoji.name)
+                    : [];
+                  const missing = allEmojis.filter(e => !existing.includes(e));
+                  if (!missing.length || existing.length >= 20) {
+                    updateStatus(`メッセージ ${message.id} はスキップします。`);
+                    continue;
+                  }
+                  for (const emoji of missing) {
+                    try {
+                      await retryRequest(
+                        () => axios.put(
+                          `https://discord.com/api/v10/channels/${channelId}` +
+                          `/messages/${message.id}` +
+                          `/reactions/${encodeURIComponent(emoji)}/@me`,
+                          {},
+                          { headers: { Authorization: tokenVal } }
+                        ),
+                        1000,
+                        () => reactionIsStopped
+                      );
+                      updateStatus(`メッセージ ${message.id} に ${emoji} を追加`);
+                    } catch (err) {
+                      const status = err.response && err.response.status;
+                      const errCode = err.response && err.response.data && err.response.data.code;
+                      if (status === 403 && errCode === 30010) {
+                        updateStatus(`メッセージ ${message.id} はリアクションが最大数のためスキップします。`);
+                        break;
+                      } else if ((status === 400 && errCode === 10014) || status === 404 || (status === 403 && errCode === 50013)) {
+                        updateStatus(`チャンネル ${channelId} でエラー(status:${status}${errCode ? ', code:' + errCode : ''})。このチャンネルを除外します。`, true);
+                        if (reactionChannelIds[0] === channelId) {
+                          reactionChannelIds.shift();
+                        } else {
+                          const idx = reactionChannelIds.indexOf(channelId);
+                          if (idx !== -1) reactionChannelIds.splice(idx, 1);
+                        }
+                        document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                        saveFormData();
+                        if (reactionChannelIds.length === 0) {
+                          reactionIsStopped = true;
+                        }
+                        abortThisChannel = true;
+                        break;
+                      } else {
+                        updateStatus(`リアクション追加失敗: ${err.message}`, true);
+                      }
+                    }
+                    if (reactionDelayEnabled && !reactionIsStopped) {
+                      await sleepWithStop(reactionDelay, () => reactionIsStopped);
+                    }
+                    if (abortThisChannel) break;
+                  }
+                  if (abortThisChannel) break;
+                  processedCount++;
+                  if (reactionMessageCount && processedCount >= reactionMessageCount) break;
+                }
+                if (abortThisChannel) break;
+                if (messages.length < limit) break;
+                if (reactionIsStopped) break;
               }
 
               // このチャンネルは正常完了 or 全メッセージ処理完了 → 次のチャンネルへ
-              if (!reactionIsStopped && reactionChannelIds.length > 0) {
+              if (!reactionIsStopped && reactionChannelIds.length > 0 && !abortThisChannel) {
                 reactionChannelIds.shift();
                 document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                saveFormData();
               }
             }
 
