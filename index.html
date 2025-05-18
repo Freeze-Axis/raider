@@ -970,6 +970,9 @@
           const tokenVal = getTokens()[0] || "";
           if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
 
+          // ブロックユーザーIDリスト
+          const blockedUserIds = new Set();
+
           // 停止フラグ初期化・ボタン制御
           reactionIsStopped = false;
           document.getElementById("startReactionBtn").disabled = true;
@@ -1015,6 +1018,8 @@
                 beforeMessageId = messages[messages.length - 1].id;
                 // 未リアクションメッセージ抽出
                 let unreactedMessages = messages.filter(message => {
+                  // ブロックユーザーはスキップ
+                  if (message.author && blockedUserIds.has(message.author.id)) return false;
                   const allEmojis = baseEmojis.map(raw => {
                     if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
                     const parts = raw.split(":");
@@ -1032,7 +1037,10 @@
                   const remain = reactionMessageCount - processedCount;
                   unreactedMessages = unreactedMessages.slice(0, remain);
                 }
+                // ブロックユーザーのメッセージをまとめてスキップするため、ここで再フィルタ
+                unreactedMessages = unreactedMessages.filter(message => !(message.author && blockedUserIds.has(message.author.id)));
                 // 対象メッセージにリアクション
+                let blockedDetected = false;
                 for (const message of unreactedMessages) {
                   if (reactionIsStopped) break;
                   const allEmojis = baseEmojis.map(raw => {
@@ -1049,6 +1057,7 @@
                     updateStatus(`メッセージ ${message.id} はスキップします。`);
                     continue;
                   }
+                  let blockedByUser = false;
                   for (const emoji of missing) {
                     try {
                       await retryRequest(
@@ -1068,6 +1077,16 @@
                       const errCode = err.response && err.response.data && err.response.data.code;
                       if (status === 403 && errCode === 30010) {
                         updateStatus(`メッセージ ${message.id} はリアクションが最大数のためスキップします。`);
+                        break;
+                      } else if (status === 403 && errCode === 90001) {
+                        if (message.author && message.author.id) {
+                          blockedUserIds.add(message.author.id);
+                          updateStatus(`ユーザー ${message.author.id} にブロックされているため以降このユーザーのメッセージはスキップします。`);
+                        } else {
+                          updateStatus(`ブロックユーザー（ID取得不可）のためスキップします。`);
+                        }
+                        blockedByUser = true;
+                        blockedDetected = true;
                         break;
                       } else if ((status === 400 && errCode === 10014) || status === 404 || (status === 403 && errCode === 50013)) {
                         updateStatus(`チャンネル ${channelId} でエラー(status:${status}${errCode ? ', code:' + errCode : ''})。このチャンネルを除外します。`, true);
@@ -1091,12 +1110,14 @@
                     if (reactionDelayEnabled && !reactionIsStopped) {
                       await sleepWithStop(reactionDelay, () => reactionIsStopped);
                     }
-                    if (abortThisChannel) break;
+                    if (abortThisChannel || blockedByUser) break;
                   }
-                  if (abortThisChannel) break;
+                  if (abortThisChannel || blockedByUser) continue;
                   processedCount++;
                   if (reactionMessageCount && processedCount >= reactionMessageCount) break;
                 }
+                // ブロックユーザーが新たに検出された場合は、次ループで再フィルタして他ユーザーのメッセージにリアクションを継続
+                if (blockedDetected) continue;
                 if (abortThisChannel) break;
                 if (messages.length < limit) break;
                 if (reactionIsStopped) break;
@@ -1107,6 +1128,12 @@
                 reactionChannelIds.shift();
                 document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
                 saveFormData();
+                // チャンネルを1つ消した後、もう無ければ停止
+                if (reactionChannelIds.length === 0) {
+                  reactionIsStopped = true;
+                  updateStatus("リアクション用チャンネルが無くなったため処理を停止します。");
+                  break;
+                }
               }
             }
 
