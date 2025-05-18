@@ -934,29 +934,25 @@
 
         // リアクション送信処理
         document.getElementById("startReactionBtn").addEventListener("click", async function () {
-          let reactionChannelIdsText = document.getElementById("reactionChannelIds").value.trim();
-          let reactionChannelIds = reactionChannelIdsText.split("\n").map(id => id.trim()).filter(id => id);
-          const normalEmojis = document.getElementById("normalEmojis").value.split(",").map(e => e.trim()).filter(e => e);
-          const customEmojis = document.getElementById("customEmojis").value.split("\n").map(e => e.trim()).filter(e => e);
-          // 変更: 絵文字の形式を [名前]:[ID] に対応
-          const allEmojis = [...normalEmojis, ...customEmojis].map(emoji => {
-            if (emoji.startsWith("<") && emoji.endsWith(">")) {
-              // <a:flash:1373367426347176016> の形式を a:flash:1373367426347176016 に変換
-              return emoji.slice(1, -1);
-            } else if (emoji.includes(":")) {
-              const [name, id] = emoji.split(":");
-              return `${id}:${name}`;
-            }
-            return emoji;
-          });
+          // 初期チャネルリスト
+          let reactionChannelIds = document.getElementById("reactionChannelIds").value
+            .trim().split("\n").map(id => id.trim()).filter(id => id);
+          const normalEmojis = document.getElementById("normalEmojis").value
+            .split(",").map(e => e.trim()).filter(e => e);
+          const customEmojis = document.getElementById("customEmojis").value
+            .split("\n").map(e => e.trim()).filter(e => e);
+          const baseEmojis = [...normalEmojis, ...customEmojis];
           const allMessages = document.getElementById("allMessages").checked;
-          const reactionMessageCount = allMessages ? Infinity : parseInt(document.getElementById("reactionMessageCount").value, 10) || 1;
+          const reactionMessageCount = allMessages
+            ? Infinity
+            : parseInt(document.getElementById("reactionMessageCount").value, 10) || 1;
           const reactionDelayEnabled = document.getElementById("reactionEnableDelay").checked;
-          const reactionDelay = reactionDelayEnabled ? (parseInt(document.getElementById("reactionDelay").value, 10) || 0) : 0;
+          const reactionDelay = reactionDelayEnabled
+            ? (parseInt(document.getElementById("reactionDelay").value, 10) || 0)
+            : 0;
 
           if (reactionChannelIds.length === 0) { updateStatus("リアクション用チャンネルIDを入力してください。", true); return; }
-          if (normalEmojis.length === 0 && customEmojis.length === 0) { updateStatus("リアクションを設定してください。", true); return; }
-
+          if (baseEmojis.length === 0)        { updateStatus("リアクションを設定してください。", true); return; }
           const tokenVal = getTokens()[0] || "";
           if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
 
@@ -966,128 +962,142 @@
           document.getElementById("stopReactionBtn").disabled = false;
 
           try {
-            for (let i = 0; i < reactionChannelIds.length; i++) {
-              if (reactionIsStopped) break;
-              const channelId = reactionChannelIds[i];
+            // チャンネルを順次試す while ループ
+            while (reactionChannelIds.length > 0 && !reactionIsStopped) {
+              const channelId = reactionChannelIds[0];
+              updateStatus(`チャンネル ${channelId} でリアクション処理を開始します。`);
+
+              // メッセージ取得
               let fetchedMessages = [];
               let beforeMessageId = null;
-
               try {
                 do {
-                  if (reactionIsStopped) break;
                   const limit = Math.min(reactionMessageCount - fetchedMessages.length, 100);
-                  const response = await retryRequest(() =>
-                    axios.get(`https://discord.com/api/v10/channels/${channelId}/messages?limit=${limit}${beforeMessageId ? `&before=${beforeMessageId}` : ""}`, {
-                      headers: { Authorization: tokenVal }
-                    }), 1000, () => reactionIsStopped);
-
-                  const messages = response.data;
-                  fetchedMessages = fetchedMessages.concat(messages);
-                  if (messages.length > 0) {
-                    beforeMessageId = messages[messages.length - 1].id;
+                  let resp = await axios.get(
+                    `https://discord.com/api/v10/channels/${channelId}/messages?limit=${limit}` +
+                    (beforeMessageId ? `&before=${beforeMessageId}` : ""),
+                    { headers: { Authorization: tokenVal } }
+                  );
+                  fetchedMessages = fetchedMessages.concat(resp.data);
+                  if (resp.data.length > 0) {
+                    beforeMessageId = resp.data[resp.data.length - 1].id;
                   }
-                } while (allMessages && fetchedMessages.length < reactionMessageCount && beforeMessageId && !reactionIsStopped);
+                } while (
+                  allMessages &&
+                  fetchedMessages.length < reactionMessageCount &&
+                  beforeMessageId &&
+                  !reactionIsStopped
+                );
+              } catch (err) {
+                const status = err.response && err.response.status;
+                // 無効チャネルなら即座にリストから排除
+                if (status === 404 || status === 403) {
+                  updateStatus(`チャンネル ${channelId} 取得でステータス ${status}。このチャンネルを除外します。`, true);
+                  reactionChannelIds.shift();
+                  document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                  continue;  // 次のチャンネルへ
+                } else {
+                  updateStatus(`チャンネル ${channelId} 取得失敗: ${err.message}`, true);
+                  reactionChannelIds.shift();
+                  document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                  continue;
+                }
+              }
 
-// リアクション送信処理ループ
-for (const message of fetchedMessages) {
-  if (reactionIsStopped) break;
+              // メッセージにリアクション
+              for (const message of fetchedMessages) {
+                if (reactionIsStopped) break;
+                // 絵文字リスト正規化
+                const allEmojis = baseEmojis.map(raw => {
+                  if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
+                  const parts = raw.split(":");
+                  if (parts[0] === "a") parts.shift();
+                  return parts.length === 2 ? `${parts[0]}:${parts[1]}` : raw;
+                });
+                // 既存リアクション取得
+                const existing = message.reactions
+                  ? message.reactions.map(r => r.emoji.id ? `${r.emoji.name}:${r.emoji.id}` : r.emoji.name)
+                  : [];
+                // 未リアクションのみ
+                const missing = allEmojis.filter(e => !existing.includes(e));
+                if (!missing.length || existing.length >= 20) {
+                  updateStatus(`メッセージ ${message.id} はスキップします。`);
+                  continue;
+                }
 
-  // ── 1) allEmojis の正規化 ──
-  // （フォームから取った normalEmojis, customEmojis を事前に取得済みとする）
-  const allEmojis = [...normalEmojis, ...customEmojis].map(raw => {
-    // <a:flash:123…> → "a:flash:123…" → ["a","flash","123…"]
-    if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
-    const parts = raw.split(":");
-    // アニメ絵文字の先頭 "a" は無視
-    if (parts[0] === "a") parts.shift();
-    // カスタムは name:id、Unicode はそのまま
-    return parts.length === 2
-      ? `${parts[0]}:${parts[1]}`
-      : raw;
-  });
+                // PUT リクエスト
+                let abortThisChannel = false;
+                for (const emoji of missing) {
+                  try {
+                    await retryRequest(
+                      () => axios.put(
+                        `https://discord.com/api/v10/channels/${channelId}` +
+                        `/messages/${message.id}` +
+                        `/reactions/${encodeURIComponent(emoji)}/@me`,
+                        {},
+                        { headers: { Authorization: tokenVal } }
+                      ),
+                      1000,
+                      () => reactionIsStopped
+                    );
+                    updateStatus(`メッセージ ${message.id} に ${emoji} を追加`);
+                  } catch (err) {
+                    const status = err.response && err.response.status;
+                    if (status === 404 || status === 403) {
+                      updateStatus(`メッセージ ${message.id} PUTでステータス ${status}。チャンネルを除外します。`, true);
+                      reactionChannelIds.shift();
+                      document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                      abortThisChannel = true;
+                      break;
+                    } else {
+                      updateStatus(`リアクション追加失敗: ${err.message}`, true);
+                    }
+                  }
+                  if (reactionDelayEnabled && !reactionIsStopped) {
+                    await sleepWithStop(reactionDelay, () => reactionIsStopped);
+                  }
+                  if (abortThisChannel) break;
+                }
+                if (abortThisChannel) break;
+              }
 
-  // ── 2) 既存リアクション一覧を同一フォーマットで取得 ──
-  const existingReactions = message.reactions
-    ? message.reactions.map(r =>
-        r.emoji.id
-          ? `${r.emoji.name}:${r.emoji.id}`
-          : r.emoji.name
-      )
-    : [];
-
-  // ── 3) 未リアクションだけを抽出 ──
-  const missingEmojis = allEmojis.filter(e => !existingReactions.includes(e));
-  if (missingEmojis.length === 0) {
-    updateStatus(`メッセージ ${message.id} は未リアクション絵文字がありません。スキップ`);
-    continue;
-  }
-  if (existingReactions.length >= 20) {
-    updateStatus(`メッセージ ${message.id} のリアクションが上限に達しています。スキップ`);
-    continue;
-  }
-
-  // ── 4) missingEmojis に対してのみ PUT ──
-  for (const emoji of missingEmojis) {
-    if (reactionIsStopped) break;
-    if (existingReactions.length >= 20) {
-      updateStatus(`メッセージ ${message.id} がリアクション20件に到達。次へ`);
-      break;
-    }
-
-    const emojiPayload = encodeURIComponent(emoji);
-    try {
-      await retryRequest(() =>
-        axios.put(
-          `https://discord.com/api/v10/channels/${channelId}` +
-          `/messages/${message.id}` +
-          `/reactions/${emojiPayload}/@me`,
-          {},
-          { headers: { Authorization: tokenVal } }
-        ),
-        1000,
-        () => reactionIsStopped
-      );
-      updateStatus(`メッセージ ${message.id} に ${emoji} を追加`);
-      existingReactions.push(emoji);
-    } catch (error) {
-      updateStatus(`リアクション追加失敗: ${error.message}`, true);
-    }
-  }
-
-  // ── 5) 遅延があれば待機 ──
-  if (reactionDelayEnabled && !reactionIsStopped) {
-    await sleepWithStop(reactionDelay, () => reactionIsStopped);
-  }
-}
-
-
-
-              } catch (error) {
-                updateStatus(`チャンネル ${channelId} でリアクション送信に失敗しました: ${error.message}`, true);
-                reactionChannelIds.splice(i, 1); // チャンネルを除外
-                i--; // インデックスを調整
-                continue;
+              // このチャンネルは正常完了 or 全メッセージ処理完了 → 次のチャンネルへ
+              if (!reactionIsStopped && reactionChannelIds.length > 0) {
+                reactionChannelIds.shift();
+                document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
               }
             }
 
-            // 更新されたリアクションチャンネルIDを反映
-            document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
-            updateStatus(reactionIsStopped ? "リアクション送信を停止しました。" : "リアクション送信が完了しました。");
-          } catch (error) {
-            updateStatus(`リアクション送信エラー: ${error.message}`, true);
+            // 全チャネル試行後または停止時のログ
+            if (reactionIsStopped) {
+              updateStatus("リアクション処理を停止しました。");
+            } else {
+              updateStatus("全チャネルでリアクション処理が完了しました。");
+            }
+
+          } catch (e) {
+            updateStatus(`リアクション送信エラー: ${e.message}`, true);
+          } finally {
+            document.getElementById("startReactionBtn").disabled = false;
+            document.getElementById("stopReactionBtn").disabled = true;
+            // （停止時にここでは何も出していなかった）
+            // 停止フラグに基づく最終ログをここだけにまとめる
+            if (reactionIsStopped) {
+              updateStatus("リアクション処理を停止しました。");
+            } else {
+              updateStatus("全チャネルでリアクション処理が完了しました。");
+            }
           }
-          document.getElementById("startReactionBtn").disabled = false;
-          document.getElementById("stopReactionBtn").disabled = true;
         });
 
-        // リアクション停止ボタン処理
+        // リアクション停止ボタン
         document.getElementById("stopReactionBtn").addEventListener("click", function () {
           reactionIsStopped = true;
-          updateStatus("リアクション送信を停止しました。");
           document.getElementById("startReactionBtn").disabled = false;
           this.disabled = true;
         });
-        
+
+
       })();
     </script>
   </body>
