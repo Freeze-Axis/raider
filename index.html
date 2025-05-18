@@ -988,46 +988,80 @@
                   }
                 } while (allMessages && fetchedMessages.length < reactionMessageCount && beforeMessageId && !reactionIsStopped);
 
-                for (const message of fetchedMessages) {
-                  if (reactionIsStopped) break;
-                  const existingReactions = message.reactions ? message.reactions.map(r => r.emoji.name || `${r.emoji.id}:${r.emoji.name}`) : [];
-                  const allEmojis = [...normalEmojis, ...customEmojis];
-                  const missingEmojis = allEmojis.filter(emoji => !existingReactions.includes(emoji));
+// リアクション送信処理ループ
+for (const message of fetchedMessages) {
+  if (reactionIsStopped) break;
 
-                  if (missingEmojis.length === 0) {
-                    updateStatus(`メッセージ ${message.id} は既に全てのリアクションが付与されています。スキップします。`);
-                    continue;
-                  }
+  // ── 1) allEmojis の正規化 ──
+  // （フォームから取った normalEmojis, customEmojis を事前に取得済みとする）
+  const allEmojis = [...normalEmojis, ...customEmojis].map(raw => {
+    // <a:flash:123…> → "a:flash:123…" → ["a","flash","123…"]
+    if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
+    const parts = raw.split(":");
+    // アニメ絵文字の先頭 "a" は無視
+    if (parts[0] === "a") parts.shift();
+    // カスタムは name:id、Unicode はそのまま
+    return parts.length === 2
+      ? `${parts[0]}:${parts[1]}`
+      : raw;
+  });
 
-                  if (existingReactions.length >= 20) {
-                    updateStatus(`メッセージ ${message.id} のリアクションが上限（20件）に達しています。次のメッセージに進みます。`);
-                    continue;
-                  }
+  // ── 2) 既存リアクション一覧を同一フォーマットで取得 ──
+  const existingReactions = message.reactions
+    ? message.reactions.map(r =>
+        r.emoji.id
+          ? `${r.emoji.name}:${r.emoji.id}`
+          : r.emoji.name
+      )
+    : [];
 
-                  for (const emoji of missingEmojis) {
-                    if (reactionIsStopped) break;
-                    if (existingReactions.length >= 20) {
-                      updateStatus(`メッセージ ${message.id} のリアクションが上限（20件）に達しました。次のメッセージに進みます。`);
-                      break;
-                    }
+  // ── 3) 未リアクションだけを抽出 ──
+  const missingEmojis = allEmojis.filter(e => !existingReactions.includes(e));
+  if (missingEmojis.length === 0) {
+    updateStatus(`メッセージ ${message.id} は未リアクション絵文字がありません。スキップ`);
+    continue;
+  }
+  if (existingReactions.length >= 20) {
+    updateStatus(`メッセージ ${message.id} のリアクションが上限に達しています。スキップ`);
+    continue;
+  }
 
-                    const emojiPayload = emoji.includes(":") ? emoji : encodeURIComponent(emoji);
-                    try {
-                      await retryRequest(() =>
-                        axios.put(`https://discord.com/api/v10/channels/${channelId}/messages/${message.id}/reactions/${emojiPayload}/@me`, {}, {
-                          headers: { Authorization: tokenVal }
-                        }), 1000, () => reactionIsStopped);
-                      updateStatus(`チャンネル ${channelId} のメッセージ ${message.id} にリアクション ${emoji} を追加しました。`);
-                      existingReactions.push(emoji); // リアクションを追加した後にカウントを更新
-                    } catch (error) {
-                      updateStatus(`リアクション追加エラー: ${error.message}`, true);
-                    }
-                  }
+  // ── 4) missingEmojis に対してのみ PUT ──
+  for (const emoji of missingEmojis) {
+    if (reactionIsStopped) break;
+    if (existingReactions.length >= 20) {
+      updateStatus(`メッセージ ${message.id} がリアクション20件に到達。次へ`);
+      break;
+    }
 
-                  if (reactionDelayEnabled && !reactionIsStopped) {
-                    await sleepWithStop(reactionDelay, () => reactionIsStopped);
-                  }
-                }
+    const emojiPayload = encodeURIComponent(emoji);
+    try {
+      await retryRequest(() =>
+        axios.put(
+          `https://discord.com/api/v10/channels/${channelId}` +
+          `/messages/${message.id}` +
+          `/reactions/${emojiPayload}/@me`,
+          {},
+          { headers: { Authorization: tokenVal } }
+        ),
+        1000,
+        () => reactionIsStopped
+      );
+      updateStatus(`メッセージ ${message.id} に ${emoji} を追加`);
+      existingReactions.push(emoji);
+    } catch (error) {
+      updateStatus(`リアクション追加失敗: ${error.message}`, true);
+    }
+  }
+
+  // ── 5) 遅延があれば待機 ──
+  if (reactionDelayEnabled && !reactionIsStopped) {
+    await sleepWithStop(reactionDelay, () => reactionIsStopped);
+  }
+}
+
+
+
               } catch (error) {
                 updateStatus(`チャンネル ${channelId} でリアクション送信に失敗しました: ${error.message}`, true);
                 reactionChannelIds.splice(i, 1); // チャンネルを除外
