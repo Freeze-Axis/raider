@@ -1,20 +1,25 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <!-- -------------------------------------------- -->
-  <link rel="icon" type="image/png" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSN9s4V8zGvrsP6d6f8YYoWsxY6BbPv2Clrrg&usqp=CAU">
+<head>
+<!----------------------------------------------------------------->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#a9ceec" />
 
-  <head prefix="og: https://ogp.me/ns#">
-    <meta property="og:url" content="https://freeze-axis.github.io/Freeze_Tool/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Webツール" />
-    <meta property="og:description" content="メッセージ送信ツールです" />
-    <meta property="og:site_name" content="Freeze-Axis" />
-    <meta property="og:image" content="" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <!-- -------------------------------------------- -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Discord Bot Controller - Compact Dark UI (左寄せ・展開状態保存)</title>
+  <title>Freeze 荒らしツール</title>
+  <meta name="description" content="Discordで活動する多目的グループ“Freeze”の公式サイトです。" />
+
+  <link rel="icon" href="https://i.ibb.co/LyFxxY5/freeze.png" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="Freeze" />
+  <meta property="og:title"       content="Webツール" />
+  <meta property="og:description" content="メッセージ送信ツール" />
+  <meta property="og:url"         content="" />
+  <meta property="og:image"       content="" />
+<!----------------------------------------------------------------->
+
     <!-- Google Fonts: Roboto Mono -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -994,12 +999,18 @@
                 if (status === 404 || status === 403) {
                   updateStatus(`チャンネル ${channelId} 取得でステータス ${status}。このチャンネルを除外します。`, true);
                   reactionChannelIds.shift();
-                  document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                  //document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                  const reactionTextarea = document.getElementById("reactionChannelIds");
+                  reactionTextarea.value = reactionChannelIds.join("\n");
+                  saveFormData(); // ← 自動保存を更新
                   continue;  // 次のチャンネルへ
                 } else {
                   updateStatus(`チャンネル ${channelId} 取得失敗: ${err.message}`, true);
                   reactionChannelIds.shift();
-                  document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                  //document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
+                  const reactionTextarea = document.getElementById("reactionChannelIds");
+                  reactionTextarea.value = reactionChannelIds.join("\n");
+                  saveFormData(); // ← 自動保存を更新
                   continue;
                 }
               }
