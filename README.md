@@ -1,4 +1,4 @@
-# Freeze_Axis Discordツール
+# Freeze Discordツール
 
 ## 利用規約
 
@@ -12,5 +12,5 @@
 ## 制作者
 
 - **@Freeze-Axis**  
-  GitHub: [https://github.com/Freeze-Axis](https://github.com/Freeze-Axis)
-　サイト：[https://freeze-axis.github.io/Freeze_Tool](https://freeze-axis.github.io/raider/)
+  GitHub: https://github.com/Freeze-Axis
+　サイト: https://freeze-axis.github.io/raider/
