@@ -307,6 +307,47 @@
     color: #adb8ff;
   }
 
+/* 開催期間セレクトボックス装飾 */
+.styled-select {
+  margin-top: 8px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #202225;
+  color: #fff;
+  font-family: monospace;
+  font-size: 15px;
+  appearance: none;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(88,101,242,0.08);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  position: relative;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="white" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px 18px;
+}
+.styled-select:focus {
+  box-shadow: 0 0 0 3px rgba(114,137,218,0.3);
+  border: 1px solid #7289da;
+}
+.styled-select option {
+  background: #36393f;
+  color: #fff;
+}
+.styled-select::-ms-expand {
+  display: none;
+}
+
+  /* トークンマスク用 */
+  .token-masked {
+    font-family: 'text-security-disc','monospace';
+    -webkit-text-security: disc;
+    text-security: disc;
+    letter-spacing: 2px;
+  }
   </style>
 </head>
 <body>
@@ -314,7 +355,14 @@
     <h2>Freeze Web Spammer</h2>
     <form id="form">
       <label>トークン
-        <textarea id="tokens" rows="4" placeholder="カンマ / 改行 / スペースで区切る MTM1ODc4MTE3NTIzMzI1MzU*****,MTEwMDU5Njc1NjQ1NjE2MTMwM*****,..."></textarea>
+        <div style="position:relative;">
+          <textarea id="tokens" rows="4" placeholder="カンマ / 改行 / スペースで区切る MTM1ODc4MTE3NTIzMzI1MzU*****,MTEwMDU5Njc1NjQ1NjE2MTMwM*****,..." style="width:100%;padding-right:32px;"></textarea>
+          <button id="tokenMaskToggleBtn" type="button" aria-label="マスク切替" style="position:absolute;top:8px;right:8px;background:none;border:none;padding:0;margin:0;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;opacity:0.7;">
+            <span id="tokenMaskIcon">
+              <svg id="icon-eye" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
+            </span>
+          </button>
+        </div>
       </label>
 
       <label>サーバーID
@@ -360,8 +408,13 @@
         <div class="detail-content">
           <label>メンションするユーザーID一覧
             <textarea id="mentionIds" rows="2" placeholder="カンマ / 改行 / スペースで区切る 123456789012345678,123456789012345678"></textarea>
+            <button type="button" id="fetchMentions" class="secondary" style="margin-top:8px;">メンション自動取得</button>
+            <input type="number" id="mentionLimit" min="1" max="50" step="1" placeholder="上限数 (1-50)" style="width: 120px; margin-left:8px; margin-top:8px;">
           </label>
-          <button type="button" id="fetchMentions" class="secondary">メンション自動取得</button>
+          <label class="checkbox-container" style="margin-top:8px;">
+            <input type="checkbox" id="randomMention">
+            <span>ランダムメンション</span>
+          </label>
         </div>
       </details>
 
@@ -373,6 +426,25 @@
           </label>
           <label>投票 選択肢
             <textarea id="pollAnswers" rows="2" placeholder="カンマ / 改行 / スペースで区切る 選択肢1,選択肢2,..."></textarea>
+          </label>
+          <label>開催期間
+            <select id="pollDuration" class="styled-select">
+              <option value="1">1時間</option>
+              <option value="4">4時間</option>
+              <option value="8">8時間</option>
+              <option value="24" selected>24時間</option>
+              <option value="72">3日間</option>
+              <option value="168">1週間</option>
+              <option value="336">2週間</option>
+            </select>
+          </label>
+          <label class="checkbox-container" style="margin-top:8px;">
+            <input type="checkbox" id="pollInstantEnd">
+            <span>即時終了</span>
+          </label>
+          <label class="checkbox-container" style="margin-top:8px;">
+            <input type="checkbox" id="pollEnabled">
+            <span>投票を有効にする</span>
           </label>
         </div>
       </details>
@@ -390,15 +462,59 @@
 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script>
+    // ========== トークンマスク切替 ========== 
+    window.addEventListener('DOMContentLoaded', function() {
+      const tokensTextarea = document.getElementById('tokens');
+      const maskBtn = document.getElementById('tokenMaskToggleBtn');
+      const maskIcon = document.getElementById('tokenMaskIcon');
+      // localStorageからマスク状態を取得（なければtrue）
+      let masked = true;
+      try {
+        const data = JSON.parse(localStorage.getItem('freeze_spammer_form')||'{}');
+        if (typeof data.tokenMask === 'boolean') masked = data.tokenMask;
+      } catch(e) {}
+      function setTokenMask() {
+        if (masked) {
+          tokensTextarea.classList.add('token-masked');
+          maskIcon.innerHTML = '<svg id="icon-eye-off" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.06 10.06 0 0 1 12 20c-6 0-10-8-10-8a18.4 18.4 0 0 1 5.06-5.94"/><path d="M1 1l22 22"/><path d="M9.53 9.53A3 3 0 0 0 12 15a3 3 0 0 0 2.47-5.47"/><path d="M12 4c6 0 10 8 10 8a18.4 18.4 0 0 1-5.06 5.94"/></svg>';
+        } else {
+          tokensTextarea.classList.remove('token-masked');
+          maskIcon.innerHTML = '<svg id="icon-eye" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>';
+        }
+      }
+      maskBtn.addEventListener('click', function() {
+        masked = !masked;
+        setTokenMask();
+        // マスク切替時にも保存
+        try {
+          const data = JSON.parse(localStorage.getItem('freeze_spammer_form')||'{}');
+          data.tokenMask = masked;
+          localStorage.setItem('freeze_spammer_form', JSON.stringify(data));
+        } catch(e) {}
+      });
+      setTokenMask();
+    });
+  </script>
+  <script>
     // ========== フォーム履歴保存・復元 ==========
     const form = document.getElementById('form');
     const formKeys = [
-      'tokens','guildId','channelIds','messageOption','allmention','randomize','delay','limit','mentionIds','pollTitle','pollAnswers'
+      'tokens','guildId','channelIds','messageOption','allmention','randomize','delay','limit','mentionIds','mentionLimit','randomMention','pollTitle','pollAnswers','pollDuration','pollInstantEnd','pollEnabled','tokenMask'
     ];
     const FORM_STORAGE_KEY = 'freeze_spammer_form';
     function saveFormHistory() {
       const data = {};
       for (const key of formKeys) {
+        if (key === 'tokenMask') {
+          data[key] = (function(){
+            try {
+              const d = JSON.parse(localStorage.getItem('freeze_spammer_form')||'{}');
+              if (typeof d.tokenMask === 'boolean') return d.tokenMask;
+            } catch(e) {}
+            return true;
+          })();
+          continue;
+        }
         const el = form.elements[key];
         if (!el) continue;
         if (el.type === 'checkbox') data[key] = el.checked;
@@ -412,6 +528,7 @@
     function loadFormHistory() {
       const data = JSON.parse(localStorage.getItem(FORM_STORAGE_KEY)||'{}');
       for (const key of formKeys) {
+        if (key === 'tokenMask') continue;
         const el = form.elements[key];
         if (!el || data[key] === undefined) continue;
         if (el.type === 'checkbox') el.checked = !!data[key];
@@ -487,11 +604,16 @@
           const res = await axios.get(`https://discord.com/api/v10/channels/${channelId}/messages?limit=100`, {
             headers: { Authorization: tokens[0] }
           });
-          res.data.forEach(msg => { if (msg.author && msg.author.id) userSet.add(msg.author.id); });
+          res.data.forEach(msg => {
+            if (msg.author && msg.author.id && !userSet.has(msg.author.id)) {
+              userSet.add(msg.author.id);
+            }
+          });
         } catch (e) {}
       }
-      document.getElementById('mentionIds').value = Array.from(userSet).join(',');
-      log(`メンションID自動取得: ${userSet.size}件`);
+      let mentionArr = Array.from(userSet);
+      document.getElementById('mentionIds').value = mentionArr.join(',');
+      log(`メンションID自動取得: ${mentionArr.length}件`);
       enableSubmitIfReady();
     });
 
@@ -520,8 +642,18 @@
       const delay = parseFloat(document.getElementById('delay').value) || 0;
       const limit = parseInt(document.getElementById('limit').value) || 0;
       const mentionIds = parseIds(document.getElementById('mentionIds').value);
+      let mentionLimit = parseInt(document.getElementById('mentionLimit').value) || 1;
+      if (mentionLimit < 1) mentionLimit = 1;
+      if (mentionLimit > 50) mentionLimit = 50;
+      const randomMention = document.getElementById('randomMention').checked;
+      const pollEnabled = document.getElementById('pollEnabled').checked;
       const pollTitle = document.getElementById('pollTitle').value.trim();
       const pollAnswers = parseIds(document.getElementById('pollAnswers').value);
+      const pollDurationHour = parseInt(document.getElementById('pollDuration').value) || 24;
+      const pollInstantEnd = document.getElementById('pollInstantEnd').checked;
+
+      // 投票送信記録用
+      const pollSendHistory = [];
 
       // メッセージテンプレート
       let baseMsg = '';
@@ -547,27 +679,76 @@
           if (randomize) msg += ' ' + randomStr(16);
           if (allmention) msg += ' @everyone';
           if (mentionIds.length) {
-            const mentionStr = mentionIds.map(id => `<@${id}>`).join(' ');
+            let useMentionIds = mentionIds.slice();
+            if (useMentionIds.length > mentionLimit) {
+              if (randomMention) {
+                // ランダムでmentionLimit件選ぶ
+                for (let i = useMentionIds.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [useMentionIds[i], useMentionIds[j]] = [useMentionIds[j], useMentionIds[i]];
+                }
+                useMentionIds = useMentionIds.slice(0, mentionLimit);
+              } else {
+                useMentionIds = useMentionIds.slice(0, mentionLimit);
+              }
+            }
+            const mentionStr = useMentionIds.map(id => `<@${id}>`).join(' ');
             msg += '\n' + mentionStr;
           }
           let tryCount = 0;
           while (true) {
             try {
-              if (pollTitle && pollAnswers.length) {
+              if (pollEnabled && pollTitle && pollAnswers.length) {
                 // 投票送信
                 const pollData = {
                   content: msg,
                   poll: {
                     question: { text: pollTitle },
                     answers: pollAnswers.map(a => ({ poll_media: { text: a } })),
-                    duration: 24 // 24h固定
+                    duration: pollDurationHour
                   },
                   flags: 0
                 };
-                await axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, {
+                const pollRes = await axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, {
                   headers: { Authorization: tokens[i % tokens.length], 'Content-Type': 'application/json' }
                 });
                 log(`投票送信: ${channelId}`);
+                if (pollInstantEnd) {
+                  const pollId = pollRes.data.id;
+                  if (pollId) {
+                    // 記録
+                    const pollRecord = { channelId, pollId, expired: false };
+                    pollSendHistory.push(pollRecord);
+                    // awaitせず非同期で即時終了APIを呼ぶ
+                    (async () => {
+                      let success = false;
+                      for (let retry = 0; retry < 5; retry++) {
+                        try {
+                          await axios.post(`https://discord.com/api/v9/channels/${channelId}/polls/${pollId}/expire`, {}, {
+                            headers: { Authorization: tokens[i % tokens.length], 'Content-Type': 'application/json' }
+                          });
+                          log(`投票即時終了: ${channelId} (${pollId})`);
+                          pollRecord.expired = true;
+                          success = true;
+                          break;
+                        } catch (expireErr) {
+                          if (expireErr?.response?.status === 429) {
+                            const retryAfter = (expireErr.response.data && expireErr.response.data.retry_after) ? expireErr.response.data.retry_after : 2;
+                            log(`レートリミット(投票即時終了)：${retryAfter}秒待機`, true);
+                            await new Promise(r => setTimeout(r, retryAfter * 1000));
+                          } else {
+                            if (retry === 4) {
+                              log(`投票即時終了失敗: ${channelId} (${pollId})`, true);
+                            }
+                            await new Promise(r => setTimeout(r, 1000));
+                          }
+                        }
+                      }
+                    })();
+                  } else {
+                    log(`投票ID(=メッセージID)が取得できず即時終了できません: ${channelId}`, true);
+                  }
+                }
               } else {
                 // 通常メッセージ
                 await axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, { content: msg }, {
@@ -580,7 +761,7 @@
             } catch (e) {
               if (e?.response?.status === 429) {
                 const retryAfter = (e.response.data && e.response.data.retry_after) ? e.response.data.retry_after : 2;
-                log(`429: レートリミット。${retryAfter}秒待機`, true);
+                log(`レートリミット：${retryAfter}秒待機`, true);
                 await new Promise(r => setTimeout(r, retryAfter * 1000));
                 tryCount++;
                 if (tryCount > 5) { log('リトライ上限', true); break; }
@@ -595,6 +776,39 @@
           if (limit && count >= limit) break outer;
         }
       }
+
+      // スパム送信終了時に未終了の投票を全て再度expire
+      async function expireAllUnfinishedPolls() {
+        const unexpired = pollSendHistory.filter(p => !p.expired);
+        if (unexpired.length === 0) return;
+        log(`未終了の投票を再終了処理: ${unexpired.length}件`);
+        for (const poll of unexpired) {
+          if (poll.expired) continue; // 既に終了済みはスキップ
+          for (let retry = 0; retry < 5; retry++) {
+            try {
+              await axios.post(`https://discord.com/api/v9/channels/${poll.channelId}/polls/${poll.pollId}/expire`, {}, {
+                headers: { Authorization: tokens[0], 'Content-Type': 'application/json' }
+              });
+              log(`投票再即時終了: ${poll.channelId} (${poll.pollId})`);
+              poll.expired = true;
+              break;
+            } catch (err) {
+              if (err?.response?.status === 429) {
+                const retryAfter = (err.response.data && err.response.data.retry_after) ? err.response.data.retry_after : 2;
+                log(`レートリミット(投票即時終了)：${retryAfter}秒待機`, true);
+                await new Promise(r => setTimeout(r, retryAfter * 1000));
+              } else {
+                if (retry === 4) {
+                  log(`投票再即時終了失敗: ${poll.channelId} (${poll.pollId})`, true);
+                }
+                await new Promise(r => setTimeout(r, 1000));
+              }
+            }
+          }
+        }
+      }
+      await expireAllUnfinishedPolls();
+
       log('スパム送信終了');
       spamRunning = false;
       setBtnState(false);
@@ -626,9 +840,6 @@
       }
       log(ok ? 'サーバー退出リクエスト送信' : 'サーバー退出失敗', !ok);
     });
-  </script>
-</body>
-</html>
     </script>
   </body>
 </html>
