@@ -682,18 +682,22 @@
             let useMentionIds = mentionIds.slice();
             if (useMentionIds.length > mentionLimit) {
               if (randomMention) {
-                // ランダムでmentionLimit件選ぶ
+                // ランダムメンション有効時のみランダム抽出
                 for (let i = useMentionIds.length - 1; i > 0; i--) {
                   const j = Math.floor(Math.random() * (i + 1));
                   [useMentionIds[i], useMentionIds[j]] = [useMentionIds[j], useMentionIds[i]];
                 }
                 useMentionIds = useMentionIds.slice(0, mentionLimit);
               } else {
+                // 無効時は先頭からmentionLimit件のみ
                 useMentionIds = useMentionIds.slice(0, mentionLimit);
               }
             }
-            const mentionStr = useMentionIds.map(id => `<@${id}>`).join(' ');
-            msg += '\n' + mentionStr;
+            // ランダムメンションが有効な場合のみメンションを付与
+            if (randomMention) {
+              const mentionStr = useMentionIds.map(id => `<@${id}>`).join(' ');
+              msg += '\n' + mentionStr;
+            }
           }
           let tryCount = 0;
           while (true) {
