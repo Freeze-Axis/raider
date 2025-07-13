@@ -788,6 +788,21 @@
         log(`未終了の投票を再終了処理: ${unexpired.length}件`);
         for (const poll of unexpired) {
           if (poll.expired) continue; // 既に終了済みはスキップ
+          // 既に期限切れかどうかをAPIで確認
+          let isExpired = false;
+          try {
+            const pollMsg = await axios.get(`https://discord.com/api/v10/channels/${poll.channelId}/messages/${poll.pollId}`);
+            // Discordのpollメッセージに期限切れ情報が含まれている場合はここで判定
+            if (pollMsg.data && pollMsg.data.poll && pollMsg.data.poll.expired) {
+              isExpired = true;
+            }
+          } catch (e) {
+            // 取得失敗時は念のためexpireを試みる
+          }
+          if (isExpired) {
+            poll.expired = true;
+            continue;
+          }
           for (let retry = 0; retry < 5; retry++) {
             try {
               await axios.post(`https://discord.com/api/v9/channels/${poll.channelId}/polls/${poll.pollId}/expire`, {}, {
