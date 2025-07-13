@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#a9ceec" />
 
-  <title>Freeze - 荒らしツール</title>
-  <meta name="description" content="Discordで活動する多目的グループ“Freeze”の公式サイトです。" />
+  <title>Freeze荒らしツール</title>
+  <meta name="description" content="" />
 
   <link rel="icon" href="https://i.ibb.co/LyFxxY5/freeze.png" />
 
@@ -15,1159 +15,620 @@
   <meta property="og:type"        content="website" />
   <meta property="og:site_name"   content="Freeze" />
   <meta property="og:title"       content="荒らしツール" />
-  <meta property="og:description" content="★多機能・高性能★" />
+  <meta property="og:description" content="★シンプルで高品質★" />
   <meta property="og:url"         content="" />
   <meta property="og:image"       content="" />
 <!----------------------------------------------------------------->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* スクロールバーのスタイル */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #202225; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: #5865f2; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #7289da; }
 
-    <!-- Google Fonts: Roboto Mono -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-      /* 基本リセット */
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body {
-        font-family: 'Roboto Mono', monospace;
-        background: #121212;
-        color: #e0e0e0;
-        line-height: 1.4;
-        padding: 5px;
-        font-size: 0.9rem;
-        text-align: left;
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg,#2f3136,#1e1f22);
+      color:#fff;
+      margin:0; padding:0;
+      display:flex; justify-content:center; align-items:center;
+      height:100vh;
+    }
+    .card {
+      background:#36393f;
+      padding:32px;
+      border-radius:20px;
+      box-shadow:0 15px 35px rgba(0,0,0,.5);
+      width:100%; max-width:600px;
+      animation:fadeIn .8s ease;
+      overflow:auto; max-height:95vh;
+    }
+    @keyframes fadeIn {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    h2 { color:#adb8ff; text-align:center; margin:0 0 24px; font-weight:600; }
+    label { display:block; margin-top:18px; font-size:14px; }
+
+    /* テキスト入力 */
+    input[type="text"], textarea {
+      width:100%; padding:10px; margin-top:6px;
+      border-radius:8px; border:none;
+      background:#202225; color:#fff;
+      font-family:monospace; resize:vertical;
+    }
+    textarea { overflow-y:auto; }
+    input[type="number"] {
+      padding:6px; margin-top:6px;
+      border-radius:8px; border:none;
+      background:#202225; color:#fff;
+      font-family:monospace; appearance:none;
+      width:80px;
+    }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance:none; margin:0;
+    }
+
+    /* フレックス行 */
+    .row {
+      display:flex; gap:12px; align-items:center;
+    }
+    .row > * { flex:none; }
+    .row label,
+    .row .checkbox-container { margin-top:0; }
+
+    /* トグルスイッチ */
+    .checkbox-container {
+      display:flex; align-items:center; gap:8px;
+      cursor:pointer; font-size:14px; user-select:none;
+      margin-top:6px;
+    }
+    .checkbox-container input {
+      appearance:none; width:36px; height:18px;
+      background:#4f545c; border-radius:18px;
+      position:relative; transition:background .3s ease;
+    }
+    .checkbox-container:hover input { background:#5a5f68; }
+    .checkbox-container input:focus {
+      outline:none; box-shadow:0 0 0 3px rgba(114,137,218,0.5);
+    }
+    .checkbox-container input::before {
+      content:''; position:absolute;
+      width:14px; height:14px; border-radius:50%;
+      background:#fff; top:2px; left:2px;
+      transition:transform .3s cubic-bezier(.68,-.55,.27,1.55);
+    }
+    .checkbox-container input:checked { background:#7289da; }
+    .checkbox-container input:checked::before {
+      transform:translateX(18px);
+    }
+    .checkbox-container span { transition:color .3s; }
+    .checkbox-container input:checked + span {
+      color:#adb8ff;
+    }
+
+    /* ボタン */
+    button.primary {
+      margin-top:24px; width:100%; padding:14px;
+      border:none; border-radius:14px;
+      background:linear-gradient(135deg,#6d75ff,#5865f2);
+      color:#fff; font-weight:700; font-size:18px;
+      letter-spacing:.5px; cursor:pointer; position:relative;
+      box-shadow:
+        0 4px 15px rgba(88,101,242,.4),
+        0 0 10px rgba(255,255,255,.1),
+        inset 0 0 5px rgba(255,255,255,.2);
+      overflow:hidden; transition:all .3s;
+    }
+    button.primary:hover {
+      background:linear-gradient(135deg,#7d89ff,#4e57e0);
+      box-shadow:
+        0 6px 22px rgba(88,101,242,.6),
+        0 0 24px rgba(255,255,255,.2),
+        inset 0 0 10px rgba(255,255,255,.3);
+      transform:scale(1.03);
+    }
+    button.primary:active {
+      transform:scale(0.96);
+      box-shadow:inset 0 4px 6px rgba(0,0,0,.3);
+    }
+    button.primary.loading {
+      color: #ffffffa2; pointer-events:none;
+    }
+
+    button.secondary {
+      margin-top:8px; padding:6px 12px;
+      background:#5865f2; color:#fff;
+      font-size:14px; border:none; border-radius:6px;
+      position:relative; overflow:hidden;
+    }
+    button.secondary::after {
+      content:''; position:absolute;
+      top:0; left:0; width:100%; height:100%;
+      background:rgba(255,255,255,0.1);
+      opacity:0; transition:opacity .3s;
+    }
+    button.secondary:hover::after { opacity:1; }
+    button.secondary:active::after { background:rgba(255,255,255,0.2); }
+
+    /* 停止・退出ボタン強調 */
+    #stopSpam, #leaveBtn {
+      width:48%; padding:10px;
+      border:none; border-radius:10px;
+      background:linear-gradient(135deg,#e74c3c,#c0392b);
+      color:#fff; font-weight:700; font-size:14px;
+      letter-spacing:.5px; cursor:pointer; transition:all .3s;
+      margin-top:12px;
+      box-shadow: 0 4px 10px rgba(255,0,0,0.3);
+    }
+    #stopSpam:hover, #leaveBtn:hover {
+      background:linear-gradient(135deg,#c0392b,#e74c3c);
+      transform:scale(1.03);
+    }
+    #stopSpam:active, #leaveBtn:active {
+      transform:scale(0.96);
+      box-shadow:inset 0 4px 6px rgba(0,0,0,.3);
+    }
+
+    .button-container {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    /* Advanced options (details) */
+    details { margin-top:18px; }
+    summary { list-style:none; padding-left:20px; cursor:pointer; font-weight:600; position:relative; margin-top:0; }
+    summary::-webkit-details-marker { display:none; }
+    summary::marker { content:none; }
+    summary::before { content:'▶'; position:absolute; left:0; top:50%; transform:translateY(-50%); transition:transform .3s ease; }
+    details[open] > summary::before { transform:translateY(-50%) rotate(90deg); }
+    .detail-content { transform-origin:top center; transform:scaleY(0); opacity:0; transition:transform .3s ease, opacity .3s ease; }
+    details[open] .detail-content { transform:scaleY(1); opacity:1; }
+
+    #log { margin-top:20px; padding:10px; height:120px; overflow-y:auto; background:#202225; border-radius:10px; font-family:monospace; font-size:12px; white-space:pre-wrap; resize: vertical;}
+    @media (max-width: 600px) {
+      .card {
+        padding: 16px;
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 10px;
       }
-      /* コンテナ（左寄せ・コンパクト） */
-      .container {
-        max-width: 600px;
-        margin: 5px 0;
-        padding: 5px;
+
+      h2 {
+        font-size: 18px;
+        margin-bottom: 16px;
       }
-      /* アコーディオンカード */
-      .accordion {
-        background: #1f1f1f;
-        border: 1px solid #333;
-        border-radius: 4px;
-        margin-bottom: 8px;
-        overflow: hidden;
-        transition: transform 0.2s;
-      }
-      .accordion-header {
-        padding: 8px 12px;
-        background: linear-gradient(90deg, #00c6ff, #0072ff);
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        user-select: none;
-      }
-      .accordion-header h2 {
-        font-size: 0.9rem;
-        margin: 0;
-        color: #121212;
-      }
-      .accordion-header .toggle-icon {
-        font-size: 1rem;
-        transition: transform 0.3s;
-        color: #121212;
-      }
-      .accordion-content {
-        padding: 8px 12px;
-        display: none;
-        background: #1f1f1f;
-      }
-      .accordion-content.active { display: block; }
-      /* フォーム要素 */
+
       label {
-        display: block;
-        margin-bottom: 2px;
-        font-weight: 700;
-        font-size: 0.8rem;
-        color: #00c6ff;
-        cursor: help;
+        font-size: 13px;
+        margin-top: 12px;
       }
+
       input[type="text"],
-      input[type="number"],
       textarea,
-      select {
+      input[type="number"] {
+        padding: 8px;
+        font-size: 12px;
+      }
+
+      button.primary {
+        padding: 12px;
+        font-size: 16px;
+      }
+
+      button.secondary {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+
+      .row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .row label {
         width: 100%;
-        padding: 6px;
-        margin-bottom: 6px;
-        border: 1px solid #00c6ff;
-        border-radius: 2px;
-        background: #2a2a2a;
-        color: #e0e0e0;
-        font-size: 0.8rem;
-        transition: border-color 0.2s;
       }
-      input[type="text"]:focus,
-      input[type="number"]:focus,
-      textarea:focus,
-      select:focus {
-        border-color: #00a3d9;
-        outline: none;
+
+      .button-container {
+        flex-direction: column;
+        gap: 8px;
       }
-      textarea { resize: vertical; }
-      .checkbox-group {
-        display: flex;
-        align-items: center;
-        margin-bottom: 6px;
+
+      #stopSpam,
+      #leaveBtn {
+        width: 100%;
       }
-      .checkbox-group input[type="checkbox"] {
-        margin-right: 4px;
-        width: 14px;
-        height: 14px;
-        accent-color: #00c6ff;
+
+      details summary {
+        font-size: 13px;
+        padding-left: 18px;
       }
-      /* ボタン */
-      .btn {
-        display: inline-block;
-        padding: 6px 12px;
-        font-size: 0.8rem;
-        font-weight: bold;
-        border: none;
-        border-radius: 2px;
-        cursor: pointer;
-        transition: background 0.2s, box-shadow 0.2s;
-        margin-top: 2px;
-        background: linear-gradient(90deg, #00c6ff, #0072ff);
-        color: #121212;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+
+      .checkbox-container {
+        font-size: 13px;
       }
-      .btn:hover { 
-        background: linear-gradient(90deg, #00a3d9, #005bb5);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.7);
+
+      #log {
+        height: 80px;
+        font-size: 11px;
       }
-      .btn:disabled { background: #555; cursor: not-allowed; }
-      /* ステータス表示エリア */
-      .status-box {
-        background: #1f1f1f;
-        border: 1px solid #00c6ff;
-        border-radius: 2px;
-        padding: 8px;
-        margin-top: 8px;
-        min-height: 100px;
-        max-height: 300px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        font-size: 0.75rem;
-      }
-      /* ツールチップ */
-      label.tooltip:hover::after {
-        content: attr(data-tip);
-        position: absolute;
-        background: #333;
-        color: #fff;
-        padding: 4px 6px;
-        border-radius: 2px;
-        top: -28px;
-        font-size: 0.7rem;
-        white-space: nowrap;
-        opacity: 0.9;
-      }
-      /* ▼ メッセージ設定用スタイル ▼ */
-      .message-settings-container {
-        padding: 10px;
-        border: 1px solid #00c6ff;
-        border-radius: 4px;
-        background-color: #181818;
-        margin-top: 8px;
-      }
-      .message-settings-container h3 {
-        margin-bottom: 8px;
-        color: #00c6ff;
-      }
-      .delay-settings {
-        border: 1px solid #00c6ff;
-        padding: 8px;
-        margin-top: 8px;
-        border-radius: 4px;
-        background-color: #1a1a1a;
-      }
-      .execution-buttons {
-        margin-top: 10px;
-        text-align: center;
-      }
-      .thread-execution-buttons {
-        margin-top: 10px;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <form id="botForm">
-        <!-- TOKEN設定 -->
-        <div class="accordion" id="botServer">
-          <div class="accordion-header">
-            <h2>TOKEN設定</h2>
-            <span class="toggle-icon">＋</span>
-          </div>
-          <div class="accordion-content">
-            <!-- トークンは常に表示 -->
-            <label for="tokenInput" class="tooltip" data-tip="各行に1トークンを入力">Botトークン</label>
-            <textarea id="tokenInput" name="token" rows="3" placeholder="TOKEN1&#10;TOKEN2"></textarea>
-          </div>
-        </div>
-        
-        <!-- ID設定（サーバーID含む） -->
-        <div class="accordion" id="channel">
-          <div class="accordion-header">
-            <h2>ID設定</h2>
-            <span class="toggle-icon">＋</span>
-          </div>
-          <div class="accordion-content">
-            <label for="serverId" class="tooltip" data-tip="例：123456789012345678">サーバーID</label>
-            <input type="text" id="serverId" name="serverId" placeholder="サーバーIDを入力">
-            <div class="checkbox-group">
-              <input type="checkbox" id="sendToAllChannels" name="sendToAllChannels">
-              <label for="sendToAllChannels">全チャンネルにランダム送信（自動取得）</label>
-            </div>
-            <div id="manualChannelDiv">
-              <label for="channelIds" class="tooltip" data-tip="各行に1つのチャンネルIDを入力">チャンネルID（改行区切り）</label>
-              <textarea id="channelIds" name="channelIds" rows="2" placeholder="例：123456789012345678&#10;234567890123456789"></textarea>
-            </div>
-            <fieldset style="border:1px solid #00c6ff; padding: 8px; margin-top: 8px;">
-              <legend style="padding: 0 4px; color: #00c6ff; font-size: 0.8rem;">ユーザーID取得</legend>
-              <label for="userIds" class="tooltip" data-tip="取得したユーザーIDは各行に表示されます">取得済みユーザーID</label>
-              <textarea id="userIds" name="userIds" rows="2" placeholder="ここに取得したユーザーIDが表示されます"></textarea>
-              <button type="button" class="btn" id="fetchUserIdsButton">ユーザーID取得</button>
-            </fieldset>
-            <label for="reactionChannelId" class="tooltip" data-tip="リアクションに使用するチャンネルIDを入力">リアクション用チャンネルID</label>
-            <textarea id="reactionChannelIds" name="reactionChannelIds" rows="3" placeholder="例：123456789012345678&#10;234567890123456789"></textarea>
-            <button type="button" class="btn" id="fetchReactionChannelIdButton">リアクション用チャンネルIDを取得</button>
-          </div>
-        </div>
-        
-        <!-- メッセージ設定 -->
-        <div class="accordion" id="message">
-          <div class="accordion-header">
-            <h2>メッセージ設定</h2>
-            <span class="toggle-icon">＋</span>
-          </div>
-          <div class="accordion-content">
-            <div class="message-settings-container">
-              <h3>メッセージ設定</h3>
-              <label for="messageContent" class="tooltip" data-tip="送信するメッセージ本文">メッセージ内容</label>
-              <textarea id="messageContent" name="messageContent" rows="2" placeholder="送信するメッセージ"></textarea>
-              <div class="checkbox-group">
-                <input type="checkbox" id="appendRandomString" name="appendRandomString">
-                <label for="appendRandomString">末尾にランダム文字追加</label>
-              </div>
-              <div class="checkbox-group">
-                <input type="checkbox" id="mentionRandomUsers" name="mentionRandomUsers">
-                <label for="mentionRandomUsers">ランダムにメンション</label>
-              </div>
-              <label for="mentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
-              <input type="number" id="mentionCount" name="mentionCount" min="1" max="50" value="1">
-              <fieldset style="border:1px solid #00c6ff; padding: 8px; margin-top: 8px; border-radius:4px;">
-                <legend style="padding: 0 4px; color: #00c6ff; font-size: 0.8rem;">【メッセージ送信：投票設定】</legend>
-                <div class="checkbox-group">
-                  <input type="checkbox" id="includePoll" name="includePoll">
-                  <label for="includePoll">投票を含む</label>
-                </div>
-                <div id="pollFields" style="display: none;">
-                  <label for="pollQuestion" class="tooltip" data-tip="投票のタイトルを入力">投票タイトル</label>
-                  <input type="text" id="pollQuestion" name="pollQuestion" placeholder="投票のタイトル">
-                  <label for="pollAnswers" class="tooltip" data-tip="カンマ区切りで複数回答を入力">投票の回答</label>
-                  <input type="text" id="pollAnswers" name="pollAnswers" placeholder="例：回答1,回答2,回答3">
-                  <label for="pollDuration" class="tooltip" data-tip="投票の開催期間（単位：時間）">開催期間</label>
-                  <select id="pollDuration" name="pollDuration">
-                    <option value="1">1時間</option>
-                    <option value="4">4時間</option>
-                    <option value="8">8時間</option>
-                    <option value="24">24時間</option>
-                    <option value="72">3日間</option>
-                    <option value="168">1週間</option>
-                    <option value="336">2週間</option>
-                  </select>
-                  <div class="checkbox-group">
-                    <input type="checkbox" id="expirePoll" name="expirePoll">
-                    <label for="expirePoll">投票を即時終了</label>
-                  </div>
-                </div>
-              </fieldset>
-              <div class="delay-settings">
-                <div class="checkbox-group">
-                  <input type="checkbox" id="enableDelay" name="enableDelay">
-                  <label for="enableDelay">遅延を有効にする</label>
-                </div>
-                <label for="delay" class="tooltip" data-tip="送信遅延（ミリ秒）。例：1000 は 1 秒">送信遅延（ミリ秒）</label>
-                <input type="number" id="delay" name="delay" step="1" value="0" placeholder="例：1000">
-              </div>
-              <div class="execution-buttons">
-                <button type="submit" class="btn" id="executeBtn">実行</button>
-                <button type="button" class="btn" id="stopButton" disabled>停止</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- スレッド作成 -->
-        <div class="accordion" id="threadCreation">
-          <div class="accordion-header">
-            <h2>スレッド作成</h2>
-            <span class="toggle-icon">＋</span>
-          </div>
-          <div class="accordion-content">
-            <label for="threadTitle" class="tooltip" data-tip="作成するスレッドのタイトル">スレッドタイトル</label>
-            <input type="text" id="threadTitle" name="threadTitle" placeholder="スレッドタイトルを入力">
-            <label for="threadMessage" class="tooltip" data-tip="スレッド内に送信するメッセージ">スレッドのメッセージ</label>
-            <textarea id="threadMessage" name="threadMessage" rows="2" placeholder="スレッド内のメッセージ"></textarea>
-            <div class="checkbox-group">
-              <input type="checkbox" id="threadMentionRandomUsers" name="threadMentionRandomUsers">
-              <label for="threadMentionRandomUsers">ランダムにメンション</label>
-            </div>
-            <label for="threadMentionCount" class="tooltip" data-tip="1～50の範囲で設定">メンション数</label>
-            <input type="number" id="threadMentionCount" name="threadMentionCount" min="1" max="50" value="1">
-            <label for="threadCount" class="tooltip" data-tip="作成回数を指定">作成回数</label>
-            <input type="number" id="threadCount" name="threadCount" value="1">
-            <div class="delay-settings">
-              <div class="checkbox-group">
-                <input type="checkbox" id="threadEnableDelay" name="threadEnableDelay">
-                <label for="threadEnableDelay">遅延を有効にする</label>
-              </div>
-              <label for="threadDelay" class="tooltip" data-tip="各スレッド作成の遅延（ミリ秒）。例：1000 は 1 秒">遅延（ミリ秒）</label>
-              <input type="number" id="threadDelay" name="threadDelay" value="0" placeholder="例：1000">
-            </div>
-            <p style="font-size:0.8rem; color:#00c6ff;">※スレッドのtypeは自動判別されます</p>
-            <div class="thread-execution-buttons">
-              <button type="button" class="btn" id="startThreadBtn">スレッド送信開始</button>
-              <button type="button" class="btn" id="stopThreadBtn" disabled>スレッド停止</button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- リアクションアコーディオン -->
-        <div class="accordion" id="reaction">
-          <div class="accordion-header">
-            <h2>リアクション</h2>
-            <span class="toggle-icon">＋</span>
-          </div>
-          <div class="accordion-content">
-            <label for="normalEmojis" class="tooltip" data-tip="通常絵文字をカンマ区切りで入力">通常絵文字</label>
-            <input type="text" id="normalEmojis" name="normalEmojis" placeholder="例：😀,😎,👍">
-            <label for="customEmojis" class="tooltip" data-tip="カスタム絵文字を改行区切りで入力">カスタム絵文字</label>
-            <textarea id="customEmojis" name="customEmojis" rows="3" placeholder="例：custom1&#10;custom2"></textarea>
-            <label for="reactionMessageCount" class="tooltip" data-tip="リアクションを付けるメッセージ数">対象メッセージ数</label>
-            <input type="number" id="reactionMessageCount" name="reactionMessageCount" min="1" value="1">
-            <div class="checkbox-group">
-              <input type="checkbox" id="allMessages" name="allMessages">
-              <label for="allMessages">全てのメッセージを対象にする</label>
-            </div>
-            <div class="delay-settings">
-              <div class="checkbox-group">
-                <input type="checkbox" id="reactionEnableDelay" name="reactionEnableDelay">
-                <label for="reactionEnableDelay">遅延を有効にする</label>
-              </div>
-              <label for="reactionDelay" class="tooltip" data-tip="リアクション遅延（ミリ秒）。例：1000 は 1 秒">遅延（ミリ秒）</label>
-              <input type="number" id="reactionDelay" name="reactionDelay" value="0" placeholder="例：1000">
-            </div>
-            <div class="execution-buttons">
-              <button type="button" class="btn" id="startReactionBtn">リアクション送信開始</button>
-              <button type="button" class="btn" id="stopReactionBtn" disabled>リアクション停止</button>
-            </div>
-          </div>
-        </div>
-      </form>
-      
-      <!-- ログ表示 -->
-      <div style="font-size: 0.9rem; color: #00c6ff; margin-top:10px;">ログ</div>
-      <div class="status-box" id="status">処理待機中...</div>
+    }
+    .radio-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+    margin-right: 16px;
+  }
+
+  .radio-container input[type="radio"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #4f545c;
+    border: 2px solid #5865f2;
+    border-radius: 50%;
+    position: relative;
+    transition: background .3s ease, border-color .3s ease;
+  }
+
+  .radio-container input[type="radio"]::before {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 10px; height: 10px;
+    background: #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform .2s ease-out;
+  }
+
+  .radio-container input[type="radio"]:checked {
+    background: #5865f2;
+    border-color: #7289da;
+  }
+
+  .radio-container input[type="radio"]:checked::before {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .radio-container span {
+    color: #fff;
+    transition: color .3s;
+  }
+  .radio-container input[type="radio"]:checked + span {
+    color: #adb8ff;
+  }
+
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Freeze Web Spammer</h2>
+    <form id="form">
+      <label>トークン
+        <textarea id="tokens" rows="4" placeholder="カンマ / 改行 / スペースで区切る MTM1ODc4MTE3NTIzMzI1MzU*****,MTEwMDU5Njc1NjQ1NjE2MTMwM*****,..."></textarea>
+      </label>
+
+      <label>サーバーID
+        <input type="text" id="guildId" required placeholder="123456789012345678">
+      </label>
+
+      <label>チャンネルID
+        <textarea id="channelIds" rows="2" placeholder="カンマ / 改行 / スペースで区切る 123456789012345678,123456789012345678,..."></textarea>
+      </label>
+      <button type="button" id="autoFillChannels" class="secondary">チャンネル自動取得</button>
+
+
+    <label>メッセージ内容</label>
+    <div class="row">
+      <label class="radio-container">
+        <input type="radio" name="messageOption" value="A" required checked>
+        <span>通常宣伝文</span>
+      </label>
+      <label class="radio-container">
+        <input type="radio" name="messageOption" value="B">
+        <span>クラッシュGIF宣伝文</span>
+      </label>
     </div>
+      <label class="checkbox-container">
+        <input type="checkbox" id="allmention" checked>
+        <span>全体メンション</span>
+      </label>
+      <label class="checkbox-container">
+        <input type="checkbox" id="randomize">
+        <span>メッセージのランダマイズ</span>
+      </label>
+      <div class="row">
+        <label>メッセージ送信間隔
+          <input type="number" id="delay" min="0" step="0.1" placeholder="0"> 秒
+        </label>
+        <label>メッセージ送信上限
+          <input type="number" id="limit" min="1" step="1" placeholder="0"> 回
+        </label>
+      </div>
+
+      <details>
+        <summary>メンション設定</summary>
+        <div class="detail-content">
+          <label>メンションするユーザーID一覧
+            <textarea id="mentionIds" rows="2" placeholder="カンマ / 改行 / スペースで区切る 123456789012345678,123456789012345678"></textarea>
+          </label>
+          <button type="button" id="fetchMentions" class="secondary">メンション自動取得</button>
+        </div>
+      </details>
+
+      <details>
+        <summary>投票設定</summary>
+        <div class="detail-content">
+          <label>投票 タイトル
+            <input type="text" id="pollTitle" placeholder="投票タイトル">
+          </label>
+          <label>投票 選択肢
+            <textarea id="pollAnswers" rows="2" placeholder="カンマ / 改行 / スペースで区切る 選択肢1,選択肢2,..."></textarea>
+          </label>
+        </div>
+      </details>
+
+      <button id="submitBtn" type="submit" class="primary" disabled>実行</button>
+    </form>
     
-    <!-- axios CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script>
-      (function(){
-        "use strict";
-        
-        // ────────────── 停止処理対応 ──────────────
-        // 停止フラグ（メッセージ送信用）
-        let isStopped = false;
-        // スレッド送信用停止フラグ
-        let threadIsStopped = false;
-        // リアクション停止用フラグ
-        let reactionIsStopped = false;
-        
-        // キャンセル可能な待機関数（指定された停止フラグを定期チェック）
-        function sleepWithStop(ms, stopChecker) {
-          return new Promise(resolve => {
-            const start = Date.now();
-            function check() {
-              if (stopChecker()) {
-                resolve();
-              } else if (Date.now() - start >= ms) {
-                resolve();
-              } else {
-                setTimeout(check, 50);
-              }
-            }
-            check();
+    <div class="button-container">
+      <button id="stopSpam" class="secondary">スパム停止</button>
+      <button id="leaveBtn" class="secondary">サーバー退出</button>
+    </div>
+
+    <div id="log"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    // ========== フォーム履歴保存・復元 ==========
+    const form = document.getElementById('form');
+    const formKeys = [
+      'tokens','guildId','channelIds','messageOption','allmention','randomize','delay','limit','mentionIds','pollTitle','pollAnswers'
+    ];
+    const FORM_STORAGE_KEY = 'freeze_spammer_form';
+    function saveFormHistory() {
+      const data = {};
+      for (const key of formKeys) {
+        const el = form.elements[key];
+        if (!el) continue;
+        if (el.type === 'checkbox') data[key] = el.checked;
+        else if (el.type === 'radio') {
+          const checked = form.querySelector(`input[name="${key}"]:checked`);
+          data[key] = checked ? checked.value : '';
+        } else data[key] = el.value;
+      }
+      localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(data));
+    }
+    function loadFormHistory() {
+      const data = JSON.parse(localStorage.getItem(FORM_STORAGE_KEY)||'{}');
+      for (const key of formKeys) {
+        const el = form.elements[key];
+        if (!el || data[key] === undefined) continue;
+        if (el.type === 'checkbox') el.checked = !!data[key];
+        else if (el.type === 'radio') {
+          const radio = form.querySelector(`input[name="${key}"][value="${data[key]}"]`);
+          if (radio) radio.checked = true;
+        } else el.value = data[key];
+      }
+    }
+    form.addEventListener('input', saveFormHistory);
+    window.addEventListener('DOMContentLoaded', loadFormHistory);
+    // ========== ユーティリティ ==========
+    function parseIds(str) {
+      // カンマ・改行・スペース区切りで分割
+      return str.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+    }
+    function log(msg, isError = false) {
+      const logDiv = document.getElementById('log');
+      const el = document.createElement('div');
+      el.textContent = msg;
+      el.style.color = isError ? '#ff6b6b' : '#e0e0e0';
+      logDiv.appendChild(el);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    function setBtnState(running) {
+      document.getElementById('submitBtn').disabled = running;
+      document.getElementById('stopSpam').disabled = !running;
+    }
+    function enableSubmitIfReady() {
+      // 必須項目が埋まっていれば実行ボタン有効化
+      const tokens = parseIds(document.getElementById('tokens').value);
+      const guildId = document.getElementById('guildId').value.trim();
+      const channelIds = parseIds(document.getElementById('channelIds').value);
+      document.getElementById('submitBtn').disabled = !(tokens.length && guildId && channelIds.length);
+    }
+
+    // ========== チャンネル自動取得 ==========
+    document.getElementById('autoFillChannels').addEventListener('click', async function() {
+      const tokens = parseIds(document.getElementById('tokens').value);
+      const guildId = document.getElementById('guildId').value.trim();
+      if (!tokens.length || !guildId) {
+        log('トークンとサーバーIDを入力してください', true); return;
+      }
+      for (const token of tokens) {
+        try {
+          const res = await axios.get(`https://discord.com/api/v9/guilds/${guildId}/channels`, {
+            headers: { Authorization: token }
           });
-        }
-        
-        // retryRequest：停止フラグ対応版
-        async function retryRequest(requestFunc, delay = 1000, stopChecker = () => false) {
-          while (true) {
-            if (stopChecker()) {
-              // throw new Error("処理停止されました。");
-              const stopError = new Error("処理停止されました。");
-              stopError.isStopped = true;
-              throw stopError;
-            }
-            try {
-              return await requestFunc();
-            } catch (error) {
-              if (stopChecker()) {
-                // throw new Error("処理停止されました。");
-                const stopError = new Error("処理停止されました。");
-                stopError.isStopped = true;
-                throw stopError;
-              }
-              if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                throw error; // ← axiosのerrorをそのまま投げる
-              } else if (error.response && error.response.status === 429) {
-                const retryAfter = error.response.data.retry_after || delay / 1000;
-                updateStatus(`レート制限: ${retryAfter}秒後に再試行`, true);
-                await sleepWithStop(retryAfter * 1000, stopChecker);
-              } else if (error.response && error.response.status === 400 && error.response.data && error.response.data.code === 10014) {
-                throw error; // ← 400/10014は外に投げる
-              } else if (error.response && error.response.status === 404) {
-                throw error; // ← 404も外に投げる
-              } else if (error.message === "Network Error") {
-                updateStatus("ネットワークエラー。再試行します。", true);
-                await sleepWithStop(delay, stopChecker);
-              } else {
-                updateStatus(`エラー: ${error.message}`, true);
-                await sleepWithStop(delay, stopChecker);
-              }
-            }
-          }
-        }
-        
-        // ────────────── ヘルパー関数 ──────────────
-        function getTokens() {
-          return tokenInput.value.split("\n").map(t => t.trim()).filter(t => t);
-        }
-        
-        function generateMentionString(userIdsText, count) {
-          const userIds = userIdsText.split("\n").map(id => id.trim()).filter(id => id);
-          if (!userIds.length) return "";
-          const effectiveCount = Math.min(count, userIds.length);
-          const shuffled = userIds.slice().sort(() => 0.5 - Math.random());
-          const selected = shuffled.slice(0, effectiveCount);
-          const mentions = selected.map(id => `<@${id}>`);
-          const lines = [];
-          for (let i = 0; i < mentions.length; i += 3) {
-            lines.push(mentions.slice(i, i + 3).join(" "));
-          }
-          return lines.join("\n");
-        }
-        
-        function checkAndRemoveInvalidToken(error, tokens, index) {
-          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            updateStatus(`TOKEN[${tokens[index]}]は使用不可と判断されました。以降このTOKENではリクエストを行いません。`, true);
-            tokens.splice(index, 1);
-            return true;
-          }
-          return false;
-        }
-        
-        function throwIfInvalidToken(error, token) {
-          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            updateStatus(`TOKEN[${token}]は使用不可と判断されたため、以降のリクエストは送信しません。`, true);
-            throw error;
-          }
-        }
-        
-        // getChannelsForServer の修正：第三引数で停止チェック関数を渡せるように
-        async function getChannelsForServer(serverId, tokens, stopChecker = () => isStopped) {
-          for (let i = 0; i < tokens.length; i++) {
-            try {
-              const resp = await retryRequest(() =>
-                axios.get(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
-                  headers: { Authorization: tokens[i] }
-                }), 1000, stopChecker);
-              const channels = resp.data.filter(ch => [0, 2, 5].includes(ch.type)).map(ch => ch.id);
-              if (channels.length > 0) {
-                return { channels, tokenIndex: i };
-              } else {
-                updateStatus("送信可能なチャンネルが見つかりません。", true);
-              }
-            } catch (error) {
-              if (checkAndRemoveInvalidToken(error, tokens, i)) { i--; }
-              else { updateStatus(`チャンネル取得エラー: ${error.message}`, true); }
-            }
-          }
-          return null;
-        }
-        
-        // ────────────── 既存処理 ──────────────
-        
-        // アコーディオン状態管理
-        const savedAccordionStates = JSON.parse(localStorage.getItem("accordionStates") || "{}");
-        document.querySelectorAll('.accordion').forEach(accordion => {
-          const header = accordion.querySelector('.accordion-header');
-          const content = accordion.querySelector('.accordion-content');
-          const icon = header.querySelector('.toggle-icon');
-          const id = accordion.id;
-          if (savedAccordionStates[id]) {
-            content.classList.add('active');
-            icon.textContent = '−';
-          } else {
-            content.classList.remove('active');
-            icon.textContent = '＋';
-          }
-          header.addEventListener('click', function() {
-            if (content.classList.contains('active')) {
-              content.classList.remove('active');
-              icon.textContent = '＋';
-              savedAccordionStates[id] = false;
-            } else {
-              content.classList.add('active');
-              icon.textContent = '−';
-              savedAccordionStates[id] = true;
-            }
-            localStorage.setItem("accordionStates", JSON.stringify(savedAccordionStates));
-          });
-        });
-        
-        // フォーム自動保存
-        let processRunning = false;
-        let lastErrorMessage = "";
-        const form = document.getElementById("botForm");
-        function saveFormData() {
-          const formData = {};
-          new FormData(form).forEach((value, key) => { formData[key] = value; });
-          localStorage.setItem("botFormData", JSON.stringify(formData));
-        }
-        function loadFormData() {
-          const saved = localStorage.getItem("botFormData");
-          if (saved) {
-            const data = JSON.parse(saved);
-            Object.keys(data).forEach(key => {
-              if (form.elements[key]) {
-                if (form.elements[key].type === "checkbox") {
-                  form.elements[key].checked = data[key] === "on";
-                } else {
-                  form.elements[key].value = data[key];
-                }
-              }
-            });
-          }
-        }
-        form.addEventListener("input", saveFormData);
-        loadFormData();
-        
-        const sendAllCheckbox = document.getElementById("sendToAllChannels");
-        const manualChannelDiv = document.getElementById("manualChannelDiv");
-        function updateChannelInput() {
-          manualChannelDiv.style.display = sendAllCheckbox.checked ? "none" : "block";
-        }
-        sendAllCheckbox.addEventListener("change", updateChannelInput);
-        updateChannelInput();
-        
-        const includePollCheckbox = document.getElementById("includePoll");
-        const pollFields = document.getElementById("pollFields");
-        pollFields.style.display = includePollCheckbox.checked ? "block" : "none";
-        includePollCheckbox.addEventListener("change", function() {
-          pollFields.style.display = this.checked ? "block" : "none";
-        });
-        
-        document.getElementById("stopButton").disabled = true;
-        document.getElementById("stopThreadBtn").disabled = true;
-        document.getElementById("stopReactionBtn").disabled = true;
-        
-        // ※TOKEN入力は常に表示するため、隠す機能は削除
-        
-        // ログ更新
-        function updateStatus(message, isError = false) {
-          if (message === lastErrorMessage) return;
-          lastErrorMessage = message;
-          const statusEl = document.getElementById("status");
-          const div = document.createElement("div");
-          div.innerText = message;
-          div.style.color = isError ? "#ff6b6b" : "#e0e0e0";
-          statusEl.appendChild(div);
-          statusEl.scrollTop = statusEl.scrollHeight;
-        }
-        
-        function generateRandomString(length) {
-          const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-          let result = "";
-          for (let i = 0; i < length; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-          }
-          return result;
-        }
-        
-        // メッセージ送信処理用関数（停止チェック付き）
-        async function sendMessageToChannels(message, channelIds, token) {
-          const headers = { Authorization: token, "Content-Type": "application/json" };
-          for (const channelId of channelIds) {
-            try {
-              const data = { content: message };
-              await retryRequest(() => axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, data, { headers }), 1000, () => isStopped);
-            } catch (error) {
-              throwIfInvalidToken(error, token);
-              updateStatus(`チャンネル ${channelId} への送信エラー: ${error.message}`, true);
-            }
-          }
-        }
-        
-        async function sendPollData(pollData, channelIds, token) {
-          const headers = { Authorization: token, "Content-Type": "application/json" };
-          for (const channelId of channelIds) {
-            try {
-              const response = await retryRequest(() => axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, { headers }), 1000, () => isStopped);
-              if (response && response.data) return response;
-              else throw new Error("無効なレスポンス");
-            } catch (error) {
-              throwIfInvalidToken(error, token);
-              updateStatus(`チャンネル ${channelId} への投票送信エラー: ${error.message}`, true);
-            }
-          }
-        }
-        
-        // ユーザーID取得処理
-        document.getElementById("fetchUserIdsButton").addEventListener("click", async function () {
-          const serverId = document.getElementById("serverId").value.trim();
-          const tokenVal = getTokens()[0] || "";
-          if (!serverId) { updateStatus("サーバーIDを入力してください。", true); return; }
-          if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
-          
-          let tokens = getTokens();
-          // ユーザーID取得時は停止チェックを行わない
-          const channelRes = await getChannelsForServer(serverId, tokens, () => false);
-          if (!channelRes) {
-            updateStatus("使用可能なTOKENがないためメッセージ送信をスキップします。", true);
+          const ids = res.data.filter(ch => [0,2,5].includes(ch.type)).map(ch => ch.id);
+          if (ids.length) {
+            document.getElementById('channelIds').value = ids.join(',');
+            log('チャンネルID自動取得成功');
+            enableSubmitIfReady();
             return;
           }
-          const channelIds = channelRes.channels;
-          
-          const userIdSet = new Set();
-          for (const channelId of channelIds) {
+        } catch (e) {
+          // 次のトークンで試す
+        }
+      }
+      log('チャンネルID自動取得に失敗', true);
+    });
+
+    // ========== メンション自動取得 ==========
+    document.getElementById('fetchMentions').addEventListener('click', async function() {
+      const tokens = parseIds(document.getElementById('tokens').value);
+      const channelIds = parseIds(document.getElementById('channelIds').value);
+      if (!tokens.length || !channelIds.length) {
+        log('トークンとチャンネルIDを入力してください', true); return;
+      }
+      const userSet = new Set();
+      for (const channelId of channelIds) {
+        try {
+          const res = await axios.get(`https://discord.com/api/v10/channels/${channelId}/messages?limit=100`, {
+            headers: { Authorization: tokens[0] }
+          });
+          res.data.forEach(msg => { if (msg.author && msg.author.id) userSet.add(msg.author.id); });
+        } catch (e) {}
+      }
+      document.getElementById('mentionIds').value = Array.from(userSet).join(',');
+      log(`メンションID自動取得: ${userSet.size}件`);
+      enableSubmitIfReady();
+    });
+
+    // ========== スパム送信処理 ==========
+    let spamRunning = false;
+    let spamAbort = false;
+    document.getElementById('form').addEventListener('input', enableSubmitIfReady);
+    enableSubmitIfReady();
+    // 履歴復元後にボタン状態も更新
+    window.addEventListener('DOMContentLoaded', enableSubmitIfReady);
+
+    document.getElementById('form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (spamRunning) return;
+      spamRunning = true;
+      spamAbort = false;
+      setBtnState(true);
+      document.getElementById('log').innerHTML = '';
+
+      const tokens = parseIds(document.getElementById('tokens').value);
+      const guildId = document.getElementById('guildId').value.trim();
+      const channelIds = parseIds(document.getElementById('channelIds').value);
+      const messageOption = document.querySelector('input[name="messageOption"]:checked').value;
+      const allmention = document.getElementById('allmention').checked;
+      const randomize = document.getElementById('randomize').checked;
+      const delay = parseFloat(document.getElementById('delay').value) || 0;
+      const limit = parseInt(document.getElementById('limit').value) || 0;
+      const mentionIds = parseIds(document.getElementById('mentionIds').value);
+      const pollTitle = document.getElementById('pollTitle').value.trim();
+      const pollAnswers = parseIds(document.getElementById('pollAnswers').value);
+
+      // メッセージテンプレート
+      let baseMsg = '';
+      if (messageOption === 'A') baseMsg =
+        '# Freeze☭Axisに荒らされました。\n[⁠︎](https://i.imgur.com/Bw50oCJ.mp4) [⁠︎](https://discord.gg/reRxqAXSSG) [⁠︎](https://freeze-axis.github.io/discord/) [⁠︎](https://freeze-axis.github.io/discord/join)';
+      if (messageOption === 'B') baseMsg =
+        '# Freeze☭Axisに荒らされました。\n[⁠︎](https://i.imgur.com/yNx4Me2.mp4) [⁠︎](https://discord.gg/reRxqAXSSG) [⁠︎](https://freeze-axis.github.io/discord/) [⁠︎](https://freeze-axis.github.io/discord/join)';
+
+      let count = 0;
+      // 429 bypass: レートリミット時はretry_after秒待ってリトライ
+      function randomStr(len=16) {
+        let s = '';
+        while (s.length < len) s += Math.random().toString(16).slice(2);
+        return s.slice(0, len);
+      }
+      outer: for (let i = 0; ; i++) {
+        if (spamAbort) break;
+        if (limit && count >= limit) break;
+        let sendChannels = [...channelIds];
+        for (const channelId of sendChannels) {
+          if (spamAbort) break outer;
+          let msg = baseMsg;
+          if (randomize) msg += ' ' + randomStr(16);
+          if (allmention) msg += ' @everyone';
+          if (mentionIds.length) {
+            const mentionStr = mentionIds.map(id => `<@${id}>`).join(' ');
+            msg += '\n' + mentionStr;
+          }
+          let tryCount = 0;
+          while (true) {
             try {
-              const response = await retryRequest(() =>
-                axios.get(`https://discord.com/api/v10/channels/${channelId}/messages?limit=100`, { headers: { Authorization: tokenVal } }), 1000, () => false);
-              const messages = response.data;
-              messages.forEach(msg => { if (msg.author && msg.author.id) userIdSet.add(msg.author.id); });
-            } catch (error) { }
-          }
-          const userIds = Array.from(userIdSet);
-          document.getElementById("userIds").value = userIds.join("\n");
-          updateStatus(`ユーザーID ${userIds.length} 件取得しました。`);
-        });
-        
-        // メッセージ送信処理
-        form.addEventListener("submit", async function (event) {
-          event.preventDefault();
-          if (processRunning) return;
-          processRunning = true;
-          isStopped = false;
-      
-          const execBtn = document.getElementById("executeBtn");
-          const stopBtn = document.getElementById("stopButton");
-          execBtn.disabled = true;
-          stopBtn.disabled = false;
-      
-          let tokens = getTokens();
-          if(tokens.length === 0) { updateStatus("使用可能なTOKENがありません。", true); processRunning = false; return; }
-      
-          const serverId = document.getElementById("serverId").value.trim();
-          const baseMessage = document.getElementById("messageContent").value;
-          const delayEnabled = document.getElementById("enableDelay").checked;
-          const delay = delayEnabled ? (parseInt(document.getElementById("delay").value, 10) || 0) : 0;
-          const appendRandomString = document.getElementById("appendRandomString").checked;
-          const mentionRandomUsers = document.getElementById("mentionRandomUsers").checked;
-          let mentionCount = parseInt(document.getElementById("mentionCount").value, 10) || 1;
-          mentionCount = Math.min(Math.max(mentionCount, 1), 50);
-          
-          const includePoll = document.getElementById("includePoll").checked;
-          const pollQuestion = document.getElementById("pollQuestion").value;
-          const pollAnswers = document.getElementById("pollAnswers").value.split(",").map(a => a.trim()).filter(a => a);
-          const pollDuration = document.getElementById("pollDuration").value;
-          const expirePoll = document.getElementById("expirePoll").checked;
-      
-          const sendToAllChannels = document.getElementById("sendToAllChannels").checked;
-          const manualChannelsText = document.getElementById("channelIds").value.trim();
-          const userIdsText = document.getElementById("userIds").value;
-      
-          let channelsList = [];
-          if (sendToAllChannels) {
-            const channelRes = await getChannelsForServer(serverId, tokens);
-            if (!channelRes) {
-              updateStatus("使用可能なTOKENがないためメッセージ送信をスキップします。", true);
-              processRunning = false;
-              execBtn.disabled = false;
-              stopBtn.disabled = true;
-              return;
-            }
-            channelsList = channelRes.channels;
-          } else {
-            const manualIds = manualChannelsText.split("\n").map(id => id.trim()).filter(id => id);
-            if (manualIds.length === 0) { updateStatus("チャンネルIDが入力されていません。", true); processRunning = false; return; }
-            channelsList = manualIds;
-          }
-      
-          updateStatus("処理中...");
-          let tokenIndex = 0;
-          while (!isStopped) {
-            if(tokens.length === 0) {
-              updateStatus("使用可能なTOKENがなくなりました。");
-              break;
-            }
-            let finalMessage = baseMessage;
-            if (mentionRandomUsers) {
-              if (userIdsText && userIdsText.trim() !== "") {
-                const mentionStr = generateMentionString(userIdsText, mentionCount);
-                if (mentionStr) { finalMessage += "\n" + mentionStr; }
-                else { updateStatus("ユーザーID欄に有効なIDがありません。ランダムメンションはスキップされました。"); }
-              } else {
-                updateStatus("ユーザーIDが指定されていないため、ランダムメンションはスキップされました。");
-              }
-            }
-            if (appendRandomString) { finalMessage += " " + generateRandomString(8); }
-      
-            let pollData = null;
-            if (includePoll) {
-              if (pollQuestion && pollAnswers.length > 0) {
-                pollData = {
-                  content: finalMessage,
+              if (pollTitle && pollAnswers.length) {
+                // 投票送信
+                const pollData = {
+                  content: msg,
                   poll: {
-                    question: { text: pollQuestion },
-                    answers: pollAnswers.map(answer => ({ poll_media: { text: answer } })),
-                    duration: pollDuration
+                    question: { text: pollTitle },
+                    answers: pollAnswers.map(a => ({ poll_media: { text: a } })),
+                    duration: 24 // 24h固定
                   },
                   flags: 0
                 };
-              }
-            }
-      
-            let targetChannels = [];
-            const randomIndex = Math.floor(Math.random() * channelsList.length);
-            targetChannels.push(channelsList[randomIndex]);
-      
-            try {
-              if (pollData) {
-                const pollResp = await retryRequest(() =>
-                  sendPollData(pollData, targetChannels, tokens[tokenIndex]),
-                  1000,
-                  () => isStopped
-                );
-                updateStatus("メッセージ＋投票を送信しました。");
-                if (expirePoll && pollResp && pollResp.data) {
-                  const pollId = pollResp.data.id;
-                  const channelId = pollResp.data.channel_id;
-                  await retryRequest(() =>
-                    axios.post(`https://discord.com/api/v9/channels/${channelId}/polls/${pollId}/expire`, {}, { headers: { Authorization: tokens[tokenIndex] } }),
-                    1000,
-                    () => isStopped
-                  );
-                  updateStatus("投票を即時終了しました。");
-                }
-              } else {
-                await retryRequest(() =>
-                  sendMessageToChannels(finalMessage, targetChannels, tokens[tokenIndex]),
-                  1000,
-                  () => isStopped
-                );
-                updateStatus("メッセージを送信しました。");
-              }
-            } catch (error) {
-              if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                updateStatus(`TOKEN[${tokens[tokenIndex]}] は使用不可と判断されました。`, true);
-                tokens.splice(tokenIndex, 1);
-                if(tokens.length === 0) {
-                  updateStatus("使用可能なTOKENがなくなりました。", true);
-                  break;
-                }
-                tokenIndex = tokenIndex % tokens.length;
-                continue;
-              } else {
-                updateStatus(`送信エラー: ${error.message}`, true);
-              }
-            }
-            tokenIndex = (tokenIndex + 1) % tokens.length;
-            await sleepWithStop(delay, () => isStopped);
-          }
-          updateStatus("メッセージ送信が停止しました。");
-          processRunning = false;
-          execBtn.disabled = false;
-          stopBtn.disabled = true;
-        });
-        
-        document.getElementById("stopButton").addEventListener("click", function () {
-          isStopped = true;
-          updateStatus("処理を停止しました。");
-          processRunning = false;
-          document.getElementById("executeBtn").disabled = false;
-          this.disabled = true;
-        });
-        
-        // スレッド作成処理
-        let threadProcessRunning = false;
-        document.getElementById("startThreadBtn").addEventListener("click", async function () {
-          if (threadProcessRunning) return;
-          threadProcessRunning = true;
-          threadIsStopped = false;
-          document.getElementById("startThreadBtn").disabled = true;
-          document.getElementById("stopThreadBtn").disabled = false;
-          
-          const threadTitle = document.getElementById("threadTitle").value.trim();
-          const threadMessage = document.getElementById("threadMessage").value;
-          const threadCount = Number(document.getElementById("threadCount").value) || 1;
-          const threadDelayEnabled = document.getElementById("threadEnableDelay").checked;
-          const threadDelay = threadDelayEnabled ? (Number(document.getElementById("threadDelay").value) || 0) : 0;
-          let tokens = getTokens();
-          if (tokens.length === 0) { updateStatus("使用可能なTOKENがありません。", true); threadProcessRunning = false; return; }
-          
-          let targetChannelId = "";
-          const sendToAllChannels = document.getElementById("sendToAllChannels").checked;
-          const manualChannelsText = document.getElementById("channelIds").value.trim();
-          const serverId = document.getElementById("serverId").value.trim();
-          
-          if (manualChannelsText) {
-            targetChannelId = manualChannelsText.split("\n")[0].trim();
-          } else if (sendToAllChannels && serverId) {
-            const channelRes = await getChannelsForServer(serverId, tokens);
-            if (!channelRes) {
-              updateStatus("使用可能なTOKENがないためスレッド作成をスキップします。", true);
-              threadProcessRunning = false;
-              document.getElementById("startThreadBtn").disabled = false;
-              document.getElementById("stopThreadBtn").disabled = true;
-              return;
-            }
-            targetChannelId = channelRes.channels[0];
-          } else {
-            updateStatus("チャンネルIDまたはサーバーIDが必要です。", true);
-            threadProcessRunning = false;
-            return;
-          }
-          
-          let actualThreadType = 11;
-          try {
-            const channelResp = await retryRequest(() =>
-              axios.get(`https://discord.com/api/v9/channels/${targetChannelId}`, {
-                headers: { Authorization: tokens[0] }
-              }), 1000, () => threadIsStopped);
-            const chType = channelResp.data.type;
-            actualThreadType = (chType === 5) ? 10 : 11;
-            updateStatus(`対象チャンネルタイプ ${chType} により、スレッドtype を ${actualThreadType} に設定しました。`);
-          } catch (error) {
-            updateStatus(`チャンネル情報取得エラー: ${error.message}`, true);
-          }
-          
-          updateStatus("スレッド作成処理開始...");
-          
-          const threadMentionRandomUsers = document.getElementById("threadMentionRandomUsers").checked;
-          let threadMentionCount = parseInt(document.getElementById("threadMentionCount").value, 10) || 1;
-          threadMentionCount = Math.min(Math.max(threadMentionCount, 1), 50);
-          
-          let threadTokenIndex = 0;
-          for (let i = 0; i < threadCount; i++) {
-            if (threadIsStopped) break;
-            try {
-              const payload = {
-                name: threadTitle,
-                type: actualThreadType,
-                auto_archive_duration: 4320,
-                location: "Thread Browser Toolbar"
-              };
-              const threadResp = await retryRequest(() =>
-                axios.post(`https://discord.com/api/v9/channels/${targetChannelId}/threads`, payload, {
-                  headers: { Authorization: tokens[threadTokenIndex], "Content-Type": "application/json" }
-                }), 1000, () => threadIsStopped);
-              if(threadIsStopped) break;
-              updateStatus(`スレッド "${threadTitle}" 作成完了 (${i+1}/${threadCount})`);
-              
-              if (threadMessage.trim() && threadResp.data && threadResp.data.id) {
-                let finalThreadMessage = threadMessage;
-                if (threadMentionRandomUsers) {
-                  const userIdsText = document.getElementById("userIds").value;
-                  if (userIdsText && userIdsText.trim() !== "") {
-                    const mentionStr = generateMentionString(userIdsText, threadMentionCount);
-                    if (mentionStr) { finalThreadMessage += "\n" + mentionStr; }
-                    else { updateStatus("ユーザーID欄に有効なIDがありません。スレッド内のランダムメンションはスキップされました。"); }
-                  } else {
-                    updateStatus("ユーザーIDが指定されていないため、スレッド内のランダムメンションはスキップされました。");
-                  }
-                }
-                if(threadIsStopped) break;
-                const msgPayload = { content: finalThreadMessage };
-                await retryRequest(() =>
-                  axios.post(`https://discord.com/api/v10/channels/${threadResp.data.id}/messages`, msgPayload, {
-                    headers: { Authorization: tokens[threadTokenIndex], "Content-Type": "application/json" }
-                  }), 1000, () => threadIsStopped);
-                if(threadIsStopped) break;
-                updateStatus(`スレッド内メッセージ送信完了 (${i+1}/${threadCount})`);
-              }
-            } catch (error) {
-              if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                updateStatus(`TOKEN[${tokens[threadTokenIndex]}] はスレッド作成に使用不可と判断されました。`, true);
-                tokens.splice(threadTokenIndex, 1);
-                if(tokens.length === 0) {
-                  updateStatus("使用可能なTOKENがなくなりました。", true);
-                  break;
-                }
-                threadTokenIndex = threadTokenIndex % tokens.length;
-                continue;
-              } else {
-                updateStatus(`スレッド作成エラー: ${error.message}`, true);
-              }
-            }
-            threadTokenIndex = (threadTokenIndex + 1) % tokens.length;
-            await sleepWithStop(threadDelay, () => threadIsStopped);
-          }
-          
-          updateStatus("スレッド作成処理が終了しました。");
-          threadProcessRunning = false;
-          document.getElementById("startThreadBtn").disabled = false;
-          document.getElementById("stopThreadBtn").disabled = true;
-        });
-        
-        document.getElementById("stopThreadBtn").addEventListener("click", function () {
-          threadIsStopped = true;
-          updateStatus("スレッド送信を停止しました。");
-          document.getElementById("startThreadBtn").disabled = false;
-          this.disabled = true;
-        });
-        
-        // リアクション用チャンネルID取得
-        document.getElementById("fetchReactionChannelIdButton").addEventListener("click", async function () {
-          const serverId = document.getElementById("serverId").value.trim();
-          const tokenVal = getTokens()[0] || "";
-          if (!serverId) { updateStatus("サーバーIDを入力してください。", true); return; }
-          if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
-
-          const channelRes = await getChannelsForServer(serverId, [tokenVal]);
-          if (channelRes && channelRes.channels.length > 0) {
-            document.getElementById("reactionChannelIds").value = channelRes.channels.join("\n");
-            updateStatus("リアクション用チャンネルIDを取得しました。");
-          } else {
-            updateStatus("リアクション用チャンネルIDの取得に失敗しました。", true);
-          }
-        });
-
-        // リアクション送信処理
-        document.getElementById("startReactionBtn").addEventListener("click", async function () {
-          // 初期チャネルリスト
-          let reactionChannelIds = document.getElementById("reactionChannelIds").value
-            .trim().split("\n").map(id => id.trim()).filter(id => id);
-          const normalEmojis = document.getElementById("normalEmojis").value
-            .split(",").map(e => e.trim()).filter(e => e);
-          const customEmojis = document.getElementById("customEmojis").value
-            .split("\n").map(e => e.trim()).filter(e => e);
-          const baseEmojis = [...normalEmojis, ...customEmojis];
-          const allMessages = document.getElementById("allMessages").checked;
-          let reactionMessageCount = parseInt(document.getElementById("reactionMessageCount").value, 10) || 1;
-          if (allMessages) reactionMessageCount = null; // nullなら全件取得扱い
-          const reactionDelayEnabled = document.getElementById("reactionEnableDelay").checked;
-          const reactionDelay = reactionDelayEnabled
-            ? (parseInt(document.getElementById("reactionDelay").value, 10) || 0)
-            : 0;
-
-          if (reactionChannelIds.length === 0) { updateStatus("リアクション用チャンネルIDを入力してください。", true); return; }
-          if (baseEmojis.length === 0)        { updateStatus("リアクションを設定してください。", true); return; }
-          const tokenVal = getTokens()[0] || "";
-          if (!tokenVal) { updateStatus("Botトークンを入力してください。", true); return; }
-
-          // ブロックユーザーIDリスト
-          const blockedUserIds = new Set();
-
-          // 停止フラグ初期化・ボタン制御
-          reactionIsStopped = false;
-          document.getElementById("startReactionBtn").disabled = true;
-          document.getElementById("stopReactionBtn").disabled = false;
-
-          try {
-            // チャンネルを順次試す while ループ
-            while (reactionChannelIds.length > 0 && !reactionIsStopped) {
-              const channelId = reactionChannelIds[0];
-              updateStatus(`チャンネル ${channelId} でリアクション処理を開始します。`);
-
-              let beforeMessageId = null;
-              let abortThisChannel = false;
-              let processedCount = 0;
-              while (!reactionMessageCount || processedCount < reactionMessageCount) {
-                const limit = 100;
-                let url = `https://discord.com/api/v10/channels/${channelId}/messages?limit=${limit}`;
-                if (beforeMessageId) url += `&before=${beforeMessageId}`;
-                let resp;
-                try {
-                  resp = await axios.get(url, { headers: { Authorization: tokenVal } });
-                } catch (err) {
-                  const status = err.response && err.response.status;
-                  if (status === 404 || status === 403) {
-                    updateStatus(`チャンネル ${channelId} 取得でステータス ${status}。このチャンネルを除外します。`, true);
-                    reactionChannelIds.shift();
-                    document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
-                    saveFormData();
-                    abortThisChannel = true;
-                    break;
-                  } else {
-                    updateStatus(`チャンネル ${channelId} 取得失敗: ${err.message}`, true);
-                    reactionChannelIds.shift();
-                    document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
-                    saveFormData();
-                    abortThisChannel = true;
-                    break;
-                  }
-                }
-                if (abortThisChannel) break;
-                const messages = resp.data;
-                if (!messages.length) break;
-                beforeMessageId = messages[messages.length - 1].id;
-                // 未リアクションメッセージ抽出
-                let unreactedMessages = messages.filter(message => {
-                  // ブロックユーザーはスキップ
-                  if (message.author && blockedUserIds.has(message.author.id)) return false;
-                  const allEmojis = baseEmojis.map(raw => {
-                    if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
-                    const parts = raw.split(":");
-                    if (parts[0] === "a") parts.shift();
-                    return parts.length === 2 ? `${parts[0]}:${parts[1]}` : raw;
-                  });
-                  const existing = message.reactions
-                    ? message.reactions.map(r => r.emoji.id ? `${r.emoji.name}:${r.emoji.id}` : r.emoji.name)
-                    : [];
-                  const missing = allEmojis.filter(e => !existing.includes(e));
-                  return missing.length > 0 && existing.length < 20;
+                await axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, {
+                  headers: { Authorization: tokens[i % tokens.length], 'Content-Type': 'application/json' }
                 });
-                // 件数制限ありの場合はslice
-                if (reactionMessageCount) {
-                  const remain = reactionMessageCount - processedCount;
-                  unreactedMessages = unreactedMessages.slice(0, remain);
-                }
-                // ブロックユーザーのメッセージをまとめてスキップするため、ここで再フィルタ
-                unreactedMessages = unreactedMessages.filter(message => !(message.author && blockedUserIds.has(message.author.id)));
-                // 対象メッセージにリアクション
-                let blockedDetected = false;
-                for (const message of unreactedMessages) {
-                  if (reactionIsStopped) break;
-                  const allEmojis = baseEmojis.map(raw => {
-                    if (raw.startsWith("<") && raw.endsWith(">")) raw = raw.slice(1, -1);
-                    const parts = raw.split(":");
-                    if (parts[0] === "a") parts.shift();
-                    return parts.length === 2 ? `${parts[0]}:${parts[1]}` : raw;
-                  });
-                  const existing = message.reactions
-                    ? message.reactions.map(r => r.emoji.id ? `${r.emoji.name}:${r.emoji.id}` : r.emoji.name)
-                    : [];
-                  const missing = allEmojis.filter(e => !existing.includes(e));
-                  if (!missing.length || existing.length >= 20) {
-                    updateStatus(`メッセージ ${message.id} はスキップします。`);
-                    continue;
-                  }
-                  let blockedByUser = false;
-                  for (const emoji of missing) {
-                    try {
-                      await retryRequest(
-                        () => axios.put(
-                          `https://discord.com/api/v10/channels/${channelId}` +
-                          `/messages/${message.id}` +
-                          `/reactions/${encodeURIComponent(emoji)}/@me`,
-                          {},
-                          { headers: { Authorization: tokenVal } }
-                        ),
-                        1000,
-                        () => reactionIsStopped
-                      );
-                      updateStatus(`メッセージ ${message.id} に ${emoji} を追加`);
-                    } catch (err) {
-                      const status = err.response && err.response.status;
-                      const errCode = err.response && err.response.data && err.response.data.code;
-                      if (status === 403 && errCode === 30010) {
-                        updateStatus(`メッセージ ${message.id} はリアクションが最大数のためスキップします。`);
-                        break;
-                      } else if (status === 403 && errCode === 90001) {
-                        if (message.author && message.author.id) {
-                          blockedUserIds.add(message.author.id);
-                          updateStatus(`ユーザー ${message.author.id} にブロックされているため以降このユーザーのメッセージはスキップします。`);
-                        } else {
-                          updateStatus(`ブロックユーザー（ID取得不可）のためスキップします。`);
-                        }
-                        blockedByUser = true;
-                        blockedDetected = true;
-                        break;
-                      } else if ((status === 400 && errCode === 10014) || status === 404 || (status === 403 && errCode === 50013)) {
-                        updateStatus(`チャンネル ${channelId} でエラー(status:${status}${errCode ? ', code:' + errCode : ''})。このチャンネルを除外します。`, true);
-                        if (reactionChannelIds[0] === channelId) {
-                          reactionChannelIds.shift();
-                        } else {
-                          const idx = reactionChannelIds.indexOf(channelId);
-                          if (idx !== -1) reactionChannelIds.splice(idx, 1);
-                        }
-                        document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
-                        saveFormData();
-                        if (reactionChannelIds.length === 0) {
-                          reactionIsStopped = true;
-                        }
-                        abortThisChannel = true;
-                        break;
-                      } else {
-                        updateStatus(`リアクション追加失敗: ${err.message}`, true);
-                      }
-                    }
-                    if (reactionDelayEnabled && !reactionIsStopped) {
-                      await sleepWithStop(reactionDelay, () => reactionIsStopped);
-                    }
-                    if (abortThisChannel || blockedByUser) break;
-                  }
-                  if (abortThisChannel || blockedByUser) continue;
-                  processedCount++;
-                  if (reactionMessageCount && processedCount >= reactionMessageCount) break;
-                }
-                // ブロックユーザーが新たに検出された場合は、次ループで再フィルタして他ユーザーのメッセージにリアクションを継続
-                if (blockedDetected) continue;
-                if (abortThisChannel) break;
-                if (messages.length < limit) break;
-                if (reactionIsStopped) break;
+                log(`投票送信: ${channelId}`);
+              } else {
+                // 通常メッセージ
+                await axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, { content: msg }, {
+                  headers: { Authorization: tokens[i % tokens.length], 'Content-Type': 'application/json' }
+                });
+                log(`送信: ${channelId}`);
               }
-
-              // このチャンネルは正常完了 or 全メッセージ処理完了 → 次のチャンネルへ
-              if (!reactionIsStopped && reactionChannelIds.length > 0 && !abortThisChannel) {
-                reactionChannelIds.shift();
-                document.getElementById("reactionChannelIds").value = reactionChannelIds.join("\n");
-                saveFormData();
-                // チャンネルを1つ消した後、もう無ければ停止
-                if (reactionChannelIds.length === 0) {
-                  reactionIsStopped = true;
-                  updateStatus("リアクション用チャンネルが無くなったため処理を停止します。");
-                  break;
-                }
+              count++;
+              break;
+            } catch (e) {
+              if (e?.response?.status === 429) {
+                const retryAfter = (e.response.data && e.response.data.retry_after) ? e.response.data.retry_after : 2;
+                log(`429: レートリミット。${retryAfter}秒待機`, true);
+                await new Promise(r => setTimeout(r, retryAfter * 1000));
+                tryCount++;
+                if (tryCount > 5) { log('リトライ上限', true); break; }
+                continue;
+              } else {
+                log(`送信失敗: ${channelId} (${e?.response?.status || ''})`, true);
+                break;
               }
-            }
-
-            // 全チャネル試行後または停止時のログ
-            if (reactionIsStopped) {
-              updateStatus("リアクション処理を停止しました。");
-            } else {
-              updateStatus("全チャネルでリアクション処理が完了しました。");
-            }
-
-          } catch (e) {
-            updateStatus(`リアクション送信エラー: ${e.message}`, true);
-          } finally {
-            document.getElementById("startReactionBtn").disabled = false;
-            document.getElementById("stopReactionBtn").disabled = true;
-            // （停止時にここでは何も出していなかった）
-            // 停止フラグに基づく最終ログをここだけにまとめる
-            if (reactionIsStopped) {
-              updateStatus("リアクション処理を停止しました。");
-            } else {
-              updateStatus("全チャネルでリアクション処理が完了しました。");
             }
           }
-        });
+          if (delay > 0) await new Promise(r => setTimeout(r, delay * 1000));
+          if (limit && count >= limit) break outer;
+        }
+      }
+      log('スパム送信終了');
+      spamRunning = false;
+      setBtnState(false);
+    });
 
-        // リアクション停止ボタン
-        document.getElementById("stopReactionBtn").addEventListener("click", function () {
-          reactionIsStopped = true;
-          document.getElementById("startReactionBtn").disabled = false;
-          this.disabled = true;
-        });
+    // ========== スパム停止 ==========
+    document.getElementById('stopSpam').addEventListener('click', function() {
+      if (!spamRunning) return;
+      spamAbort = true;
+      log('スパム送信停止');
+      setBtnState(false);
+    });
 
-
-      })();
+    // ========== サーバー退出 ==========
+    document.getElementById('leaveBtn').addEventListener('click', async function() {
+      const tokens = parseIds(document.getElementById('tokens').value);
+      const guildId = document.getElementById('guildId').value.trim();
+      if (!tokens.length || !guildId) {
+        log('トークンとサーバーIDを入力してください', true); return;
+      }
+      let ok = false;
+      for (const token of tokens) {
+        try {
+          await axios.delete(`https://discord.com/api/v9/users/@me/guilds/${guildId}`, {
+            headers: { Authorization: token }
+          });
+          ok = true;
+        } catch (e) {}
+      }
+      log(ok ? 'サーバー退出リクエスト送信' : 'サーバー退出失敗', !ok);
+    });
+  </script>
+</body>
+</html>
     </script>
   </body>
 </html>
