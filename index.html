@@ -344,10 +344,10 @@
 
   /* トークンマスク用 */
   .token-masked {
-    font-family: 'text-security-disc','monospace';
+    font-family: monospace;
     -webkit-text-security: disc;
     text-security: disc;
-    letter-spacing: 2px;
+    letter-spacing: 0;
   }
   </style>
 </head>
@@ -371,7 +371,7 @@
       </label>
 
       <label>チャンネルID
-        <textarea id="channelIds" rows="2" placeholder="カンマ / 改行 / スペースで区切る 123456789012345678,123456789012345678,..."></textarea>
+        <textarea id="channelIds" rows="5" placeholder="カンマ / 改行 / スペースで区切る 123456789012345678,123456789012345678,..."></textarea>
       </label>
       <button type="button" id="autoFillChannels" class="secondary">チャンネル自動取得</button>
     <label>メッセージ内容
@@ -397,7 +397,7 @@
       <details>
         <summary>メンション設定</summary>
         <div class="detail-content">
-          <label>メンションするユーザーID一覧
+          <label style="margin-top:12px;">メンションするユーザーID一覧
             <textarea id="mentionIds" rows="2" placeholder="カンマ / 改行 / スペースで区切る 123456789012345678,123456789012345678"></textarea>
             <button type="button" id="fetchMentions" class="secondary" style="margin-top:8px;">メンション自動取得</button>
             <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
@@ -416,13 +416,13 @@
       <details>
         <summary>投票設定</summary>
         <div class="detail-content">
-          <label>投票 タイトル
+          <label style="margin-top:12px; margin-bottom:2px;">投票 タイトル
             <input type="text" id="pollTitle" placeholder="投票タイトル">
           </label>
-          <label>投票 選択肢
+          <label style="margin-top:4px; margin-bottom:2px;">投票 選択肢
             <textarea id="pollAnswers" rows="2" placeholder="カンマ / 改行 / スペースで区切る 選択肢1,選択肢2,..."></textarea>
           </label>
-          <label>開催期間
+          <label style="margin-top:4px; margin-bottom:2px;">開催期間
             <select id="pollDuration" class="styled-select">
               <option value="1">1時間</option>
               <option value="4">4時間</option>
@@ -568,8 +568,17 @@
       const el = document.createElement('div');
       el.textContent = msg;
       el.style.color = isError ? '#ff6b6b' : '#e0e0e0';
+      // スクロール位置が最下部か判定
+      const isAtBottom = (logDiv.scrollTop + logDiv.clientHeight) >= (logDiv.scrollHeight - 2);
       logDiv.appendChild(el);
-      logDiv.scrollTop = logDiv.scrollHeight;
+      // 100件を超えたら古い順で削除
+      while (logDiv.children.length > 100) {
+        logDiv.removeChild(logDiv.firstChild);
+      }
+      // 直前まで最下部なら自動スクロール、それ以外はしない
+      if (isAtBottom) {
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
     }
     function setBtnState(running) {
       document.getElementById('submitBtn').disabled = running;
@@ -595,10 +604,46 @@
           const res = await axios.get(`https://discord.com/api/v9/guilds/${guildId}/channels`, {
             headers: { Authorization: token }
           });
-          const ids = res.data.filter(ch => [0,2,5].includes(ch.type)).map(ch => ch.id);
-          if (ids.length) {
-            document.getElementById('channelIds').value = ids.join(',');
-            log('チャンネルID自動取得成功');
+          // type: 0=テキスト, 2=ボイス, 5=アナウンス
+          // 送信権限があるチャンネルのみ抽出
+          const channels = res.data.filter(ch => [0,2,5].includes(ch.type));
+          const permittedIds = [];
+          for (const ch of channels) {
+            // permission_overwritesで自分の権限を確認
+            let canSend = false;
+            // 権限ビット: SEND_MESSAGES=0x800, CONNECT=0x100000
+            // テキスト: SEND_MESSAGES, ボイス: CONNECT
+            if (ch.permissions !== undefined) {
+              // permissionsがあれば（Botの場合）
+              if (ch.type === 0 || ch.type === 5) {
+                canSend = (parseInt(ch.permissions) & 0x800) !== 0;
+              } else if (ch.type === 2) {
+                canSend = (parseInt(ch.permissions) & 0x100000) !== 0;
+              }
+            } else if (ch.permission_overwrites && Array.isArray(ch.permission_overwrites)) {
+              // permission_overwritesがある場合（ユーザーの場合）
+              // ここでは権限の詳細な判定は難しいため、全体許可がなければ除外
+              // ただし、@everyoneのSEND_MESSAGES/CONNECTが許可されていればOK
+              const everyone = ch.permission_overwrites.find(po => po.id === guildId);
+              if (everyone) {
+                if (ch.type === 0 || ch.type === 5) {
+                  canSend = (parseInt(everyone.allow) & 0x800) !== 0;
+                } else if (ch.type === 2) {
+                  canSend = (parseInt(everyone.allow) & 0x100000) !== 0;
+                }
+              } else {
+                // everyoneがなければ一応許可（API仕様上、詳細判定は困難）
+                canSend = true;
+              }
+            } else {
+              // 権限情報がなければ一応許可
+              canSend = true;
+            }
+            if (canSend) permittedIds.push(ch.id);
+          }
+          if (permittedIds.length) {
+            document.getElementById('channelIds').value = permittedIds.join(',');
+            log('チャンネルID自動取得成功（権限ありのみ）');
             enableSubmitIfReady();
             return;
           }
@@ -606,7 +651,7 @@
           // 次のトークンで試す
         }
       }
-      log('チャンネルID自動取得に失敗', true);
+      log('チャンネルID自動取得に失敗（権限なしまたは取得不可）', true);
     });
 
     // ========== メンション自動取得 ==========
